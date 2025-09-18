@@ -7,7 +7,10 @@
 */
 
 :root {
+    /* --- FONTES --- */
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    
+    /* --- MODO CLARO (PADRÃO) --- */
     --color-background: #FFFFFF;
     --color-text-primary: #1d1d1f;
     --color-text-secondary: #6e6e73;
@@ -16,6 +19,7 @@
     --color-border: #d2d2d7;
 }
 
+/* --- MODO ESCURO --- */
 html.dark {
     --color-background: #111827;
     --color-text-primary: #F9FAFB;
@@ -25,6 +29,7 @@ html.dark {
     --color-border: #4B5563;
 }
 
+/* --- Configurações Globais --- */
 body {
     font-family: var(--font-sans);
     color: var(--color-text-primary);
@@ -47,6 +52,7 @@ p {
     line-height: 1.6;
 }
 
+/* --- Cabeçalho --- */
 header {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
@@ -79,6 +85,7 @@ header .text-3xl {
     color: var(--color-accent-blue);
 }
 
+/* --- Botões --- */
 .btn {
     display: inline-block;
     font-family: var(--font-sans);
@@ -101,6 +108,7 @@ header .text-3xl {
     filter: brightness(110%);
 }
 
+/* --- Seções e Layout --- */
 section {
     padding-top: 80px;
     padding-bottom: 80px;
@@ -110,6 +118,7 @@ section {
     background-color: var(--color-light-gray-bg);
 }
 
+/* --- Cards de Serviço --- */
 .card {
     background-color: var(--color-background);
     border: 1px solid var(--color-border);
@@ -135,6 +144,7 @@ html.dark .card:hover {
     color: var(--color-accent-blue);
 }
 
+/* --- Inputs e Formulários --- */
 input[type="text"],
 input[type="email"],
 textarea {
@@ -163,6 +173,7 @@ label.font-semibold {
     font-weight: 600;
 }
 
+/* --- Estilos de Imagens de Fundo --- */
 .hero-background {
     background-image: url('/img/bg-hero-desktop.jpg');
     background-size: cover;
@@ -215,16 +226,7 @@ html.dark .contato-background::before {
     z-index: 2;
 }
 
-.reveal {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 1s ease-out, transform 1s ease-out;
-}
-.reveal-visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
+/* --- Ícone do Logo --- */
 .logo-icon {
     width: 32px;
     height: auto;

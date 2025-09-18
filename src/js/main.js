@@ -1,33 +1,7 @@
 import '../css/style.css';
 import './darkMode.js';
-
-/**
- * Inicializa a animação de "revelar" elementos ao rolar a página.
- */
-function initScrollReveal() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                const delay = entry.target.getAttribute('data-delay');
-                entry.target.style.transitionDelay = delay || '0ms';
-                entry.target.classList.add('reveal-visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.reveal:not(.animation-group .reveal)').forEach(el => {
-        observer.observe(el);
-    });
-
-    document.querySelectorAll('.animation-group').forEach((group) => {
-        const revealElements = group.querySelectorAll('.reveal');
-        revealElements.forEach((el, index) => {
-            el.setAttribute('data-delay', `${index * 150}ms`);
-            observer.observe(el);
-        });
-    });
-}
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 /**
  * Inicializa o menu mobile (hamburguer).
@@ -125,13 +99,11 @@ function initAIChatWidget() {
             return;
         }
 
-        // Adicionar mensagem do usuário à tela
         appendMessage(messageText, 'user');
         chatInput.value = '';
         chatInput.disabled = true;
         chatSendButton.disabled = true;
         
-        // Adicionar indicador de "digitando..."
         const typingIndicator = appendMessage('...', 'ai');
 
         try {
@@ -146,7 +118,6 @@ function initAIChatWidget() {
                 throw new Error(result.message || 'Ocorreu um erro na API.');
             }
             
-            // Substitui o "digitando..." pela resposta real
             updateMessage(typingIndicator, result.result);
 
         } catch (error) {
@@ -158,19 +129,16 @@ function initAIChatWidget() {
         }
     });
     
-    // Função para adicionar uma nova mensagem na tela
     function appendMessage(text, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `${sender}-message`;
-        messageDiv.innerHTML = `<p>${text}</p>`; // Inicialmente como texto simples
+        messageDiv.innerHTML = `<p>${text}</p>`;
         messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight; // Auto-scroll
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return messageDiv;
     }
 
-    // Função para atualizar uma mensagem (usado para a resposta da IA)
     function updateMessage(messageDiv, newHtml) {
-        // Converte o Markdown simples para HTML
         let text = newHtml;
         text = text.replace(/^#### (.*$)/gm, '<h4 class="text-xl font-bold mb-4">$1</h4>');
         text = text.replace(/^##### (.*$)/gm, '<h5 class="text-lg font-semibold text-sky-500 mb-2">$1</h5>');
@@ -178,14 +146,20 @@ function initAIChatWidget() {
         text = text.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
         
         messageDiv.innerHTML = text;
-        messagesContainer.scrollTop = messagesContainer.scrollHeight; // Auto-scroll
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 }
 
 
 // Executa todas as inicializações quando o DOM estiver pronto.
 document.addEventListener('DOMContentLoaded', () => {
-    initScrollReveal();
+    // Inicializa a biblioteca AOS com algumas configurações
+    AOS.init({
+        duration: 800, // Duração da animação em milissegundos
+        once: true,    // A animação acontece apenas uma vez
+        offset: 50,    // "Gatilho" da animação um pouco antes do elemento aparecer
+    });
+
     initMobileMenu();
     initContactForm();
     initAIChatWidget();

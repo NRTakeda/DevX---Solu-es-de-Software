@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "aos": "^2.3.4",
     "express-rate-limit": "^8.1.0",
     "resend": "^3.2.0",
     "zod": "^3.23.8"
