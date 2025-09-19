@@ -147,6 +147,7 @@ html.dark .card:hover {
 /* --- Inputs e Formulários --- */
 input[type="text"],
 input[type="email"],
+input[type="password"],
 textarea {
     background-color: var(--color-background);
     border: 1px solid var(--color-border);

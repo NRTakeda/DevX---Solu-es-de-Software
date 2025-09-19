@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   // Onde está nosso arquivo HTML principal
@@ -12,6 +13,17 @@ export default defineConfig({
   build: {
     outDir: '../dist',
     emptyOutDir: true,
+    // ADICIONADO: Informando ao Vite sobre todas as páginas HTML do projeto
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'src/index.html'),
+        login: resolve(__dirname, 'src/login.html'),
+        cadastro: resolve(__dirname, 'src/cadastro.html'),
+        dashboard: resolve(__dirname, 'src/dashboard.html'),
+        esqueci_senha: resolve(__dirname, 'src/esqueci-senha.html'),
+        resetar_senha: resolve(__dirname, 'src/resetar-senha.html'),
+      },
+    },
   },
 
   // Configuração do servidor de desenvolvimento (não mudou)

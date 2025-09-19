@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "aos": "^2.3.4",
     "express-rate-limit": "^8.1.0",
     "resend": "^3.2.0",
