@@ -1,29 +1,25 @@
-// Função genérica para carregar um componente HTML em um placeholder
-async function loadComponent(elementId, filePath) {
-    const element = document.getElementById(elementId);
-    if (!element) return; // Não faz nada se o placeholder não existir na página
+// VERSÃO FINAL E ROBUSTA COM VITE ?RAW IMPORT
 
-    try {
-        // Busca o conteúdo do arquivo HTML do componente
-        const response = await fetch(filePath);
-        if (!response.ok) {
-            throw new Error(`Componente não encontrado em: ${filePath}`);
-        }
-        const componentHTML = await response.text();
-        
-        // Insere o HTML do componente no placeholder
-        element.innerHTML = componentHTML;
-    } catch (error) {
-        console.error(`Falha ao carregar o componente para #${elementId}:`, error);
-        element.innerHTML = `<p class="text-red-500 text-center">Erro ao carregar esta seção.</p>`;
+// 1. Importa o CONTEÚDO dos arquivos HTML como texto puro (string).
+// O Vite faz a mágica de ler os arquivos e colocar o conteúdo aqui.
+import headerHTML from '../components/header.html?raw';
+import footerHTML from '../components/footer.html?raw';
+
+/**
+ * Função principal que inicializa o layout da página.
+ * Ela não precisa mais ser 'async', pois os componentes já estão carregados.
+ */
+export function initLayout() {
+    const headerPlaceholder = document.getElementById('header-placeholder');
+    const footerPlaceholder = document.getElementById('footer-placeholder');
+
+    // 2. Substitui o placeholder do header pelo HTML importado.
+    if (headerPlaceholder) {
+        headerPlaceholder.outerHTML = headerHTML;
     }
-}
 
-// Função principal que inicializa o layout da página
-export async function initLayout() {
-    // Carrega o header e o footer em paralelo para otimizar o tempo
-    await Promise.all([
-        loadComponent('header-placeholder', '/components/header.html'),
-        loadComponent('footer-placeholder', '/components/footer.html')
-    ]);
+    // 3. Substitui o placeholder do footer pelo HTML importado.
+    if (footerPlaceholder) {
+        footerPlaceholder.outerHTML = footerHTML;
+    }
 }
