@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR" class="scroll-smooth">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DevX - Soluções de Software</title>
+
+    
+
+    <meta name="description" content="DevX - Criamos soluções de software robustas, com código limpo e de alta performance que impulsionam o seu negócio para a próxima era digital.">
+
+    <meta name="keywords" content="desenvolvimento de software, sistemas web, apis, ux/ui design, automação, programação, devx">
+
+    <meta name="author" content="DevX">
+
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+
+
+    <meta property="og:title" content="DevX - Soluções de Software">
+
+    <meta property="og:description" content="Desenvolvendo o Futuro, Hoje. Criamos soluções de software robustas e de alta performance.">
+
+    <meta property="og:type" content="website">
+
+    <meta property="og:url" content="https://devxpi.vercel.app/"> 
+
+    <meta property="og:image" content="https://devxpi.vercel.app/img/preview-social.jpg">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+</head>
+
+
+
+<body class="antialiased">
+
+
+
+    <header class="fixed top-0 left-0 right-0 z-50">
+
+      <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+
+          <a href="#hero" class="flex items-center gap-x-3">
+
+              <img src="/favicon.png" alt="Logo da DevX" class="logo-icon">
+
+              <span class="text-3xl font-bold tracking-wider">DevX</span>
+
+          </a>
+
+          <nav class="hidden md:flex items-center space-x-8">
+
+              <a href="#servicos">Serviços</a>
+
+              <a href="#why-devx">Por que a DevX?</a>
+
+              <a href="#depoimentos">Depoimentos</a>
+
+              <div id="auth-links" class="flex items-center space-x-8"></div>
+
+
+
+              <button id="theme-toggle" type="button" class="theme-toggle-button p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500" aria-label="Alternar tema">
+
+                  <svg id="theme-toggle-dark-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+
+                  <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+
+              </button>
+
+          </nav>
+
+          <div class="md:hidden">
+
+              <button id="mobile-menu-button" class="focus:outline-none" aria-controls="mobile-menu" aria-expanded="false">
+
+                  <span class="sr-only">Abrir menu principal</span>
+
+                  <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+
+              </button>
+
+          </div>
+
+      </div>
+
+      <div id="mobile-menu" class="hidden md:hidden">
+
+          <a href="#servicos" class="block py-3 px-6 text-sm">Serviços</a>
+
+          <a href="#why-devx" class="block py-3 px-6 text-sm">Por que a DevX?</a>
+
+          <a href="#depoimentos" class="block py-3 px-6 text-sm">Depoimentos</a>
+
+          <a href="#contato" class="block py-3 px-6 text-sm">Contato</a>
+
+          
+
+          <div class="px-6 py-3">
+
+              <button id="theme-toggle-mobile" type="button" class="theme-toggle-button p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500" aria-label="Alternar tema mobile">
+
+                  <svg id="theme-toggle-dark-icon-mobile" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+
+                  <svg id="theme-toggle-light-icon-mobile" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+
+              </button>
+
+          </div>
+
+      </div>
+
+    </header>
+
+
+
+    <main>
+
+        <section id="hero" class="pt-48 pb-32 text-center hero-background">
+
+            <div class="container mx-auto px-6">
+
+                <h1 class="text-5xl md:text-7xl font-bold mb-4" data-aos="fade-up">DevX</h1>
+
+                <h2 class="text-3xl md:text-5xl font-semibold mb-6" data-aos="fade-up" data-aos-delay="200">Desenvolvendo o Futuro, Hoje.</h2>
+
+                <p class="max-w-3xl mx-auto text-lg mb-10" data-aos="fade-up" data-aos-delay="400">
+
+                    Criamos soluções de software robustas, com código limpo e de alta performance que impulsionam o seu negócio para a próxima era digital.
+
+                </p>
+
+                <div data-aos="fade-up" data-aos-delay="600">
+
+                    <a href="#contato" class="btn btn-primary">Vamos Conversar sobre seu Projeto</a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <section id="servicos" class="py-20 bg-light-gray">
+
+            <div class="container mx-auto px-6">
+
+                <div class="text-center mb-12">
+
+                    <h3 class="text-4xl font-bold" data-aos="fade-up">Nossas Soluções em Desenvolvimento</h3>
+
+                    <p class="text-lg mt-2" data-aos="fade-up" data-aos-delay="100">Serviços projetados para máxima performance e escalabilidade.</p>
+
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+                    
+
+                    <div class="card" data-aos="fade-up" data-aos-delay="100">
+
+                        <div class="p-8 flex flex-col justify-center items-center text-center">
+
+                            <div class="icon-container mb-6">
+
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+
+                            </div>
+
+                            <h4 class="font-bold mb-3">Desenvolvimento Web</h4>
+
+                            <p>Criamos sites e landing pages do zero com design exclusivo e performance otimizada para conversão.</p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="card" data-aos="fade-up" data-aos-delay="200">
+
+                        <div class="p-8 flex flex-col justify-center items-center text-center">
+
+                            <div class="icon-container mb-6">
+
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"></path></svg>
+
+                            </div>
+
+                            <h4 class="font-bold mb-3">Sistemas Web &amp; APIs</h4>
+
+                            <p>Desenvolvemos sistemas complexos e APIs robustas para serem a espinha dorsal do seu negócio digital.</p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="card" data-aos="fade-up" data-aos-delay="300">
+
+                        <div class="p-8 flex flex-col justify-center items-center text-center">
+
+                            <div class="icon-container mb-6">
+
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.528l.259 1.035.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 18l1.036.259a3.375 3.375 0 002.455 2.456z"></path></svg>
+
+                            </div>
+
+                            <h4 class="font-bold mb-3">UX/UI Design</h4>
+
+                            <p>Criamos interfaces intuitivas e experiências de usuário memoráveis que encantam e convertem.</p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="card" data-aos="fade-up" data-aos-delay="400">
+
+                        <div class="p-8 flex flex-col justify-center items-center text-center">
+
+                            <div class="icon-container mb-6">
+
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1115 0m-15 0H3"></path></svg>
+
+                            </div>
+
+                            <h4 class="font-bold mb-3">Automação Inteligente</h4>
+
+                            <p>Desenvolvemos automações avançadas com scripts para otimizar suas operações e reduzir custos.</p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <section id="why-devx" class="py-20">
+
+            <div class="container mx-auto px-6">
+
+                <div class="text-center mb-16">
+
+                    <h3 class="text-4xl font-bold" data-aos="fade-up">Sua Visão, Nosso Código.</h3>
+
+                    <p class="text-lg mt-2 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="100">Entregamos a base tecnológica para o seu sucesso. Veja por que somos a escolha certa para o seu projeto.</p>
+
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+
+                    <div data-aos="fade-right">
+
+                        <img src="/img/workspace.jpg" alt="Ambiente de trabalho moderno da DevX" class="rounded-2xl shadow-xl">
+
+                    </div>
+
+                    <div class="space-y-8">
+
+                        <div data-aos="fade-left" data-aos-delay="100">
+
+                            <h4 class="text-2xl font-bold mb-2">Chega de Soluções Genéricas</h4>
+
+                            <p>Seu negócio é único. Seu software também deveria ser. Criamos soluções sob medida que se adaptam perfeitamente às suas necessidades.</p>
+
+                        </div>
+
+                        <div data-aos="fade-left" data-aos-delay="200">
+
+                            <h4 class="text-2xl font-bold mb-2">Obsessão por Performance</h4>
+
+                            <p>Em um mundo onde cada segundo conta, um software lento é um negócio perdido. Somos obcecados por código limpo e arquitetura eficiente.</p>
+
+                        </div>
+
+                        <div data-aos="fade-left" data-aos-delay="300">
+
+                            <h4 class="text-2xl font-bold mb-2">Mais que um Fornecedor, um Parceiro</h4>
+
+                            <p>Seu sucesso é o nosso sucesso. Trabalhamos em estreita colaboração com você, desde a ideia inicial até o lançamento e além.</p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        
+
+        <section id="depoimentos" class="py-20 bg-light-gray">
+
+            <div class="container mx-auto px-6">
+
+                <div class="text-center mb-16">
+
+                    <h3 class="text-4xl font-bold" data-aos="fade-up">O Que Nossos Parceiros Dizem</h3>
+
+                    <p class="text-lg mt-2 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="100">O sucesso dos nossos clientes é a nossa maior conquista.</p>
+
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 max-w-5xl mx-auto">
+
+                    
+
+                    <div class="card p-8" data-aos="zoom-in-up" data-aos-delay="200">
+
+                        <div class="flex flex-col h-full">
+
+                           <svg class="w-10 h-10 text-sky-400 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8.296.042A5.184 5.184 0 003.588 4.714L2.24 10.36h3.818L4.593 6.942a1.388 1.388 0 011.38-1.38h.004a1.388 1.388 0 011.38 1.38L5.9 12.36H2.082l1.503 6.6A5.184 5.184 0 008.252 24a5.184 5.184 0 004.668-4.714L14.28 8.928h-3.818l1.464 3.414a1.388 1.388 0 01-1.38 1.38h-.004a1.388 1.388 0 01-1.38-1.38L7.802 6.97h3.818L10.08.368A5.184 5.184 0 008.296.042zm11.2 0A5.184 5.184 0 0014.788 4.714L13.44 10.36h3.818l-1.465-3.418a1.388 1.388 0 011.38-1.38h.004a1.388 1.388 0 011.38 1.38L17.1 12.36h-3.818l1.503 6.6A5.184 5.184 0 0019.452 24a5.184 5.184 0 004.668-4.714L25.48 8.928h-3.818l1.464 3.414a1.388 1.388 0 01-1.38 1.38h-.004a1.388 1.388 0 01-1.38-1.38l-1.36-5.388h3.818L21.28.368A5.184 5.184 0 0019.496.042z" transform="scale(.6)"/></svg>
+
+                            <blockquote class="flex-grow">
+
+                                <p class="text-lg leading-relaxed">"Trabalhar com a DevX foi um divisor de águas. A atenção aos detalhes, a qualidade do código e a comunicação transparente superaram todas as nossas expectativas. Eles não entregam apenas software, entregam uma parceria para o sucesso."</p>
+
+                            </blockquote>
+
+                            <footer class="mt-6 flex items-center">
+
+                                <img class="w-14 h-14 rounded-full object-cover mr-4" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Foto de João Silva">
+
+                                <div>
+
+                                    <p class="font-bold text-base">João Silva</p>
+
+                                    <p class="text-sm">CEO, InovaTech</p>
+
+                                </div>
+
+                            </footer>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="card p-8" data-aos="zoom-in-up" data-aos-delay="300">
+
+                        <div class="flex flex-col h-full">
+
+                           <svg class="w-10 h-10 text-sky-400 mb-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8.296.042A5.184 5.184 0 003.588 4.714L2.24 10.36h3.818L4.593 6.942a1.388 1.388 0 011.38-1.38h.004a1.388 1.388 0 011.38 1.38L5.9 12.36H2.082l1.503 6.6A5.184 5.184 0 008.252 24a5.184 5.184 0 004.668-4.714L14.28 8.928h-3.818l1.464 3.414a1.388 1.388 0 01-1.38 1.38h-.004a1.388 1.388 0 01-1.38-1.38L7.802 6.97h3.818L10.08.368A5.184 5.184 0 008.296.042zm11.2 0A5.184 5.184 0 0014.788 4.714L13.44 10.36h3.818l-1.465-3.418a1.388 1.388 0 011.38-1.38h.004a1.388 1.388 0 011.38 1.38L17.1 12.36h-3.818l1.503 6.6A5.184 5.184 0 0019.452 24a5.184 5.184 0 004.668-4.714L25.48 8.928h-3.818l1.464 3.414a1.388 1.388 0 01-1.38 1.38h-.004a1.388 1.388 0 01-1.38-1.38l-1.36-5.388h3.818L21.28.368A5.184 5.184 0 0019.496.042z" transform="scale(.6)"/></svg>
+
+                            <blockquote class="flex-grow">
+
+                                <p class="text-lg leading-relaxed">"A performance do sistema que eles desenvolveram para nós é incrível. Conseguimos reduzir nosso tempo de processamento em 60%. Uma equipe de altíssimo nível técnico e comprometida com o resultado."</p>
+
+                            </blockquote>
+
+                            <footer class="mt-6 flex items-center">
+
+                                <img class="w-14 h-14 rounded-full object-cover mr-4" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Foto de Maria Oliveira">
+
+                                <div>
+
+                                    <p class="font-bold text-base">Maria Oliveira</p>
+
+                                    <p class="text-sm">CTO, Connecta</p>
+
+                                </div>
+
+                            </footer>
+
+                        </div>
+
+                    </div>
+
+
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <section id="contato" class="py-20 contato-background">
+
+            <div class="container mx-auto px-6 text-center">
+
+                <h3 class="text-4xl font-bold mb-4" data-aos="fade-up">Vamos Construir Algo Incrível Juntos</h3>
+
+                <p class="text-lg mb-8 max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="100">Sua ideia merece uma execução impecável. Entre em contato e vamos planejar sua solução digital sob medida.</p>
+
+                
+
+                <form id="contact-form" class="max-w-xl mx-auto text-left" data-aos="fade-up" data-aos-delay="200" novalidate>
+
+                   <div id="form-status" class="mb-4 text-center h-6"></div>
+
+                    <div class="mb-4">
+
+                        <label for="name" class="block mb-2 text-sm font-semibold">Nome</label>
+
+                        <input type="text" id="name" name="name" required>
+
+                    </div>
+
+                    <div class="mb-4">
+
+                        <label for="email" class="block mb-2 text-sm font-semibold">Email</label>
+
+                        <input type="email" id="email" name="email" required>
+
+                    </div>
+
+                    <div class="mb-4">
+
+                        <label for="message" class="block mb-2 text-sm font-semibold">Mensagem</label>
+
+                        <textarea id="message" name="message" rows="5" required></textarea>
+
+                    </div>
+
+                    <button type="submit" id="submit-button" class="btn btn-primary w-full">
+
+                        Enviar Mensagem
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+
+    <footer class="py-8 border-t">
+
+       <div class="container mx-auto px-6 text-center text-sm">
+
+            <p>© 2025 DevX. Todos os direitos reservados.</p>
+
+        </div>
+
+    </footer>
+
+
+
+    <div id="ai-chat-widget">
+
+        <button id="chat-fab" class="chat-fab" aria-label="Abrir chat com Consultor IA">
+
+            <svg id="chat-fab-icon-open" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+
+            </svg>
+
+            <svg id="chat-fab-icon-close" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+
+            </svg>
+
+        </button>
+
+
+
+        <div id="chat-window" class="chat-window">
+
+            <div class="chat-header">
+
+                <h4 class="font-bold text-lg">Consultor IA</h4>
+
+                <p class="text-sm">Descreva sua ideia e receba uma sugestão.</p>
+
+            </div>
+
+            <div id="chat-messages" class="chat-messages">
+
+                 <div class="ai-message">
+
+                    <p>Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?</p>
+
+                </div>
+
+            </div>
+
+            <div class="chat-input-area">
+
+                <form id="chat-form" class="flex items-center gap-2">
+
+                    <textarea id="chat-input" placeholder="Digite sua ideia aqui..." class="chat-input" rows="1"></textarea>
+
+                    <button id="chat-send-button" type="submit" class="chat-send-button" aria-label="Enviar mensagem">
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+
+                        </svg>
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <script type="module" src="/js/main.js"></script>
+
+</body>
+
+</html>

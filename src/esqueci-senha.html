@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR" class="scroll-smooth">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Recuperar Senha | DevX</title>
+
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+</head>
+
+
+
+<body class="antialiased">
+
+
+
+    <header class="fixed top-0 left-0 right-0 z-50">
+
+      <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+
+          <a href="/index" class="flex items-center gap-x-3">
+
+              <img src="/favicon.png" alt="Logo da DevX" class="logo-icon">
+
+              <span class="text-3xl font-bold tracking-wider">DevX</span>
+
+          </a>
+
+          <nav class="hidden md:flex items-center space-x-8">
+
+              <a href="/index#servicos">Serviços</a>
+
+              <a href="/index#why-devx">Por que a DevX?</a>
+
+              <a href="/index#depoimentos">Depoimentos</a>
+
+              <div id="auth-links" class="flex items-center space-x-8"></div>
+
+              <button id="theme-toggle" type="button" class="theme-toggle-button p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500" aria-label="Alternar tema">
+
+                  </button>
+
+          </nav>
+
+          </div>
+
+    </header>
+
+
+
+    <main>
+
+        <section class="min-h-screen flex items-center justify-center pt-32 pb-16">
+
+            <div class="container w-full max-w-md p-8 space-y-6 card">
+
+                <h2 class="text-3xl font-bold text-center">
+
+                    Recuperar sua senha
+
+                </h2>
+
+                <p class="text-center text-sm">Digite o email da sua conta e enviaremos um link para você redefinir sua senha.</p>
+
+                <form id="forgot-password-form" class="space-y-6">
+
+                    <div>
+
+                        <label for="email" class="block mb-2 text-sm font-semibold">Seu email</label>
+
+                        <input type="email" id="email" placeholder="nome@exemplo.com" required />
+
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full">
+
+                        Enviar Link de Recuperação
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    
+
+    <footer class="py-8 border-t">
+
+       <div class="container mx-auto px-6 text-center text-sm">
+
+            <p>© 2025 DevX. Todos os direitos reservados.</p>
+
+        </div>
+
+    </footer>
+
+    
+
+    <script type="module" src="/js/main.js"></script>
+
+</body>
+
+</html>
