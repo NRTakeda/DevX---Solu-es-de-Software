@@ -70,9 +70,13 @@ header a {
     text-decoration: none;
     transition: color 0.3s ease;
 }
-header nav a:hover {
+
+/* Isso está na seção --- Cabeçalho --- */
+/* APLICA O EFEITO DE HOVER APENAS SE O LINK NÃO TIVER A CLASSE .btn */
+header nav a:not(.btn):hover {
     color: var(--color-accent-blue);
 }
+
 header .text-3xl {
     color: var(--color-text-primary) !important;
     font-weight: bold;
