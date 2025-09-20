@@ -14,7 +14,7 @@ async function initAdminPage() {
     // 1. Proteger a página: verificar se o usuário é admin
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        window.location.href = '/login.html';
+        window.location.href = '/login';
         return;
     }
 
@@ -26,7 +26,7 @@ async function initAdminPage() {
 
     if (profileError || profile.role !== 'admin') {
         alert('Acesso negado.');
-        window.location.href = '/dashboard.html'; // Redireciona não-admins
+        window.location.href = '/dashboard'; // Redireciona não-admins
         return;
     }
 
@@ -134,7 +134,7 @@ function initResetPasswordForm() {
             alert('Erro ao redefinir a senha: ' + error.message);
         } else {
             alert('Senha redefinida com sucesso! Você já pode fazer o login.');
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         }
     });
 }
@@ -187,7 +187,7 @@ async function updateUserNav() {
         logoutLink.addEventListener('click', async (e) => {
             e.preventDefault();
             await supabase.auth.signOut();
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         });
 
     } else {
@@ -244,7 +244,7 @@ async function initDashboardPage() {
     
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {
-        window.location.href = '/login.html';
+        window.location.href = '/login';
         return;
     }
     const user = session.user;
@@ -336,7 +336,7 @@ async function initDashboardPage() {
     });
     logoutButton.addEventListener('click', async () => {
         await supabase.auth.signOut();
-        window.location.href = '/login.html';
+        window.location.href = '/login';
     });
 
     // Define o estado inicial da página
@@ -379,10 +379,10 @@ async function initLoginForm() { // Adicionado 'async'
                 alert('Login realizado com sucesso!');
                 // Se o usuário for admin, redireciona para a página de admin
                 if (profile && profile.role === 'admin') {
-                    window.location.href = '/admin.html';
+                    window.location.href = '/admin';
                 } else {
                     // Senão, redireciona para o dashboard normal
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/dashboard';
                 }
             }
         }
@@ -421,7 +421,7 @@ function initSignUpForm() {
             alert('Erro ao criar a conta: ' + error.message);
                } else {
     alert('Conta criada com sucesso! Verifique seu email para confirmar.');
-    window.location.href = '/login.html';
+    window.location.href = '/login';
 }
 
     });
