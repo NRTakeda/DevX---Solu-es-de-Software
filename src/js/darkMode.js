@@ -1,51 +1,36 @@
-// Seleciona os ícones de todos os botões
-const darkIcons = [
-    document.getElementById('theme-toggle-dark-icon'),
-    document.getElementById('theme-toggle-dark-icon-mobile')
-];
-const lightIcons = [
-    document.getElementById('theme-toggle-light-icon'),
-    document.getElementById('theme-toggle-light-icon-mobile')
-];
+// CÓDIGO NOVO (DEPOIS)
 
-// Função para aplicar o tema e atualizar TODOS os ícones
-function applyTheme(isDarkMode) {
-    if (isDarkMode) {
-        document.documentElement.classList.add('dark');
-        lightIcons.forEach(icon => icon?.classList.remove('hidden'));
-        darkIcons.forEach(icon => icon?.classList.add('hidden'));
-    } else {
-        document.documentElement.classList.remove('dark');
-        darkIcons.forEach(icon => icon?.classList.remove('hidden'));
-        lightIcons.forEach(icon => icon?.classList.add('hidden'));
-    }
-}
-
-// Verifica a preferência salva ou do sistema
+// Esta parte continua igual e roda imediatamente para evitar o "flash" de tema errado
 const currentTheme = localStorage.getItem('theme');
 const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-// Define o tema inicial
 if (currentTheme === 'dark' || (!currentTheme && prefersDarkMode)) {
-    applyTheme(true);
-} else {
-    applyTheme(false);
+    document.documentElement.classList.add('dark');
 }
 
-// Função de clique que será usada por ambos os botões
-function handleThemeToggle() {
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    applyTheme(!isDarkMode);
+// A lógica de adicionar o clique nos botões agora está dentro de uma função exportada
+export function initThemeToggle() {
+    const themeToggleButtons = document.querySelectorAll('.theme-toggle-button');
     
-    if (!isDarkMode) {
-        localStorage.setItem('theme', 'dark');
-    } else {
-        localStorage.setItem('theme', 'light');
+    // Função para atualizar os ícones visíveis
+    function updateIcons(isDarkMode) {
+        document.querySelectorAll('#theme-toggle-dark-icon, #theme-toggle-dark-icon-mobile').forEach(icon => {
+            isDarkMode ? icon.classList.add('hidden') : icon.classList.remove('hidden');
+        });
+        document.querySelectorAll('#theme-toggle-light-icon, #theme-toggle-light-icon-mobile').forEach(icon => {
+            isDarkMode ? icon.classList.remove('hidden') : icon.classList.add('hidden');
+        });
     }
-}
+    
+    // Atualiza os ícones no carregamento da página
+    updateIcons(document.documentElement.classList.contains('dark'));
 
-// Adiciona o evento de clique a TODOS os botões de tema
-const themeToggleButtons = document.querySelectorAll('.theme-toggle-button');
-themeToggleButtons.forEach(btn => {
-    btn.addEventListener('click', handleThemeToggle);
-});
+    // Adiciona o evento de clique a todos os botões de tema
+    themeToggleButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const isDarkMode = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            updateIcons(isDarkMode);
+        });
+    });
+}

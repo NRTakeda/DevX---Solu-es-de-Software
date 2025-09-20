@@ -1,8 +1,9 @@
 import { supabase } from './supabaseClient.js';
 import '../css/style.css';
-import './darkMode.js';
+import { initThemeToggle } from './darkMode.js';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import { initLayout } from './layout.js';
 
 /**
  * Inicializa a página de Administração.
@@ -584,16 +585,22 @@ function initAIChatWidget() {
 // Executa todas as inicializações quando o DOM estiver pronto.
 document.addEventListener('DOMContentLoaded', async () => {
     AOS.init({ duration: 800, once: true, offset: 50 });
+
+    // 1. Carrega o layout (header e footer)
+    await initLayout();
     
+    // 2. AGORA que o header existe, inicializa os botões dele
+    initThemeToggle();
     initMobileMenu();
+    await updateUserNav();
+    
+    // 3. Inicializa o resto das funcionalidades da página
     initContactForm();
     initAIChatWidget();
     initSignUpForm();
     initLoginForm();
     initForgotPasswordForm();
     initResetPasswordForm();
-    
     await initDashboardPage();
-    await updateUserNav();
-    initAdminPage();
+    await initAdminPage();
 });
