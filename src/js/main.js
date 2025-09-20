@@ -392,15 +392,14 @@ function initSignUpForm() {
             options: { data: { full_name: fullName, username: username } }
         });
 
+        // ...
         if (error) {
             alert('Erro ao criar a conta: ' + error.message);
-        } else {
-            alert('Conta criada com sucesso! Verifique seu email para confirmar.');
-            if (data.user) {
-                await supabase.from('profiles').insert([{ id: data.user.id, full_name: fullName, username: username }]);
-            }
-            window.location.href = '/login.html';
-        }
+               } else {
+    alert('Conta criada com sucesso! Verifique seu email para confirmar.');
+    window.location.href = '/login.html';
+}
+
     });
 }
 
