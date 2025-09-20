@@ -193,7 +193,7 @@ async function updateUserNav() {
     } else {
         // Usuário está DESLOGADO
         authLinksContainer.innerHTML = `
-            <a href="/index.html" #contato">Contato</a>
+            <a href="/index#contato">Contato</a>
             <a href="/login.html" class="btn btn-primary !py-2 !px-4">Login</a>
         `;
     }
