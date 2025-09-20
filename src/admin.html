@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | DevX</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="antialiased">
+    <header class="fixed top-0 left-0 right-0 z-50">
+        </header>
+
+    <main class="pt-32 pb-16">
+        <section class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold mb-8">Painel Administrativo de Projetos</h2>
+            <div class="card p-8">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b dark:border-gray-700">
+                                <th class="p-4">Nome do Projeto</th>
+                                <th class="p-4">Cliente (Usuário)</th>
+                                <th class="p-4">Status Atual</th>
+                                <th class="p-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
+            <div class="card p-8 w-full max-w-lg">
+                <h3 class="text-2xl font-bold mb-4">Editar Projeto</h3>
+                <form id="edit-project-form">
+                    <input type="hidden" id="edit-project-id">
+                    <div class="mb-4">
+                        <label for="edit-project-name" class="block mb-2 text-sm font-semibold">Nome do Projeto</label>
+                        <input type="text" id="edit-project-name">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-project-status" class="block mb-2 text-sm font-semibold">Status</label>
+                        <input type="text" id="edit-project-status" placeholder="Ex: Em Desenvolvimento">
+                    </div>
+                    <div class="flex justify-end gap-4">
+                        <button type="button" id="cancel-edit-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>

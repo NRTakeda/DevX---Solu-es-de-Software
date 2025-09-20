@@ -5,6 +5,109 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 /**
+ * Inicializa a página de Administração.
+ */
+async function initAdminPage() {
+    const projectsTableBody = document.getElementById('projects-table-body');
+    if (!projectsTableBody) return; // Só roda na página de admin
+
+    // 1. Proteger a página: verificar se o usuário é admin
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        window.location.href = '/login.html';
+        return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    if (profileError || profile.role !== 'admin') {
+        alert('Acesso negado.');
+        window.location.href = '/dashboard.html'; // Redireciona não-admins
+        return;
+    }
+
+    // Elementos do Modal de Edição
+    const editModal = document.getElementById('edit-modal');
+    const editForm = document.getElementById('edit-project-form');
+    const cancelEditButton = document.getElementById('cancel-edit-button');
+    const projectIdInput = document.getElementById('edit-project-id');
+    const projectNameInput = document.getElementById('edit-project-name');
+    const projectStatusInput = document.getElementById('edit-project-status');
+
+    // 2. Função para buscar e renderizar todos os projetos
+    async function renderProjects() {
+        // O Supabase usa a RLS. Como somos admin, esta chamada retornará todos os projetos.
+        const { data: projects, error } = await supabase
+            .from('projects')
+            .select('id, name, status, profiles(username)'); // Puxa o username do cliente!
+
+        if (error) {
+            console.error('Erro ao buscar projetos:', error);
+            return;
+        }
+
+        projectsTableBody.innerHTML = ''; // Limpa a tabela
+        projects.forEach(project => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b dark:border-gray-700';
+            tr.innerHTML = `
+                <td class="p-4">${project.name}</td>
+                <td class="p-4">${project.profiles.username || 'N/A'}</td>
+                <td class="p-4">${project.status}</td>
+                <td class="p-4">
+                    <button data-id="${project.id}" data-name="${project.name}" data-status="${project.status}" class="edit-btn text-sky-500 hover:underline">Editar</button>
+                </td>
+            `;
+            projectsTableBody.appendChild(tr);
+        });
+    }
+
+    // 3. Lógica de Edição
+    projectsTableBody.addEventListener('click', (e) => {
+        if (e.target.classList.contains('edit-btn')) {
+            const button = e.target;
+            projectIdInput.value = button.dataset.id;
+            projectNameInput.value = button.dataset.name;
+            projectStatusInput.value = button.dataset.status;
+            editModal.classList.remove('hidden');
+        }
+    });
+
+    cancelEditButton.addEventListener('click', () => {
+        editModal.classList.add('hidden');
+    });
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = projectIdInput.value;
+        const updatedData = {
+            name: projectNameInput.value,
+            status: projectStatusInput.value
+        };
+
+        const { error } = await supabase
+            .from('projects')
+            .update(updatedData)
+            .eq('id', id);
+
+        if (error) {
+            alert('Erro ao atualizar o projeto: ' + error.message);
+        } else {
+            alert('Projeto atualizado com sucesso!');
+            editModal.classList.add('hidden');
+            await renderProjects(); // Re-renderiza a tabela com os novos dados
+        }
+    });
+
+    // Renderiza os projetos ao carregar a página
+    await renderProjects();
+}
+
+/**
  * Inicializa o formulário de redefinição de senha.
  */
 function initResetPasswordForm() {
@@ -98,14 +201,76 @@ async function updateUserNav() {
 
 
 /**
- * [VERSÃO CORRIGIDA]
- * Protege a página de Dashboard, busca e ATUALIZA dados do perfil, e gerencia o logout.
+ * [VERSÃO FINAL COM SIDEBAR]
+ * Gerencia o layout do Dashboard, busca dados, e lida com a navegação da sidebar.
  */
 async function initDashboardPage() {
-    const profileForm = document.getElementById('profile-form');
-    if (!profileForm) return;
+    // Seleciona os elementos principais do layout
+    const navLinkProjects = document.getElementById('nav-link-projects');
+    const navLinkProfile = document.getElementById('nav-link-profile');
+    const contentProjects = document.getElementById('content-projects');
+    const contentProfile = document.getElementById('content-profile');
+    
+    // Se não estivermos na página do dashboard, encerra a função
+    if (!navLinkProjects) return;
 
-    // Seleciona todos os elementos que vamos manipular
+    // --- LÓGICA DE NAVEGAÇÃO DA SIDEBAR ---
+    
+    // Função para mostrar uma seção e esconder as outras
+    function showContent(contentToShow) {
+        [contentProjects, contentProfile].forEach(content => content.classList.add('hidden'));
+        contentToShow.classList.remove('hidden');
+    }
+
+    // Função para atualizar o link ativo no menu
+    function setActiveLink(activeLink) {
+        [navLinkProjects, navLinkProfile].forEach(link => link.classList.remove('bg-gray-200', 'dark:bg-gray-700'));
+        activeLink.classList.add('bg-gray-200', 'dark:bg-gray-700');
+    }
+
+    navLinkProjects.addEventListener('click', (e) => {
+        e.preventDefault();
+        setActiveLink(navLinkProjects);
+        showContent(contentProjects);
+    });
+
+    navLinkProfile.addEventListener('click', (e) => {
+        e.preventDefault();
+        setActiveLink(navLinkProfile);
+        showContent(contentProfile);
+    });
+
+    // --- LÓGICA DE DADOS (Busca de perfil, projeto, etc.) ---
+    
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+        window.location.href = '/login.html';
+        return;
+    }
+    const user = session.user;
+
+    // Lógica para buscar e preencher os dados do PROJETO
+    try {
+        const projectNameEl = document.getElementById('project-name');
+        const projectStatusEl = document.getElementById('project-status');
+        let { data: project, error } = await supabase.from('projects').select('name, status').eq('client_id', user.id).single();
+        if (error && error.code !== 'PGRST116') throw error;
+        if (project) {
+            projectNameEl.textContent = project.name;
+            projectStatusEl.textContent = project.status;
+            if (project.status === 'Concluído') projectStatusEl.style.color = 'green';
+            else if (project.status === 'Em Desenvolvimento') projectStatusEl.style.color = 'orange';
+        } else {
+            projectNameEl.textContent = 'Nenhum projeto ativo encontrado.';
+            projectStatusEl.textContent = '-';
+        }
+    } catch (error) {
+        console.error('Erro ao buscar projeto:', error.message);
+        document.getElementById('project-name').textContent = 'Erro ao carregar projeto.';
+    }
+
+    // Lógica para buscar e preencher os dados do PERFIL
+    const profileForm = document.getElementById('profile-form');
     const welcomeMessage = document.getElementById('welcome-message');
     const emailDisplay = document.getElementById('email-display');
     const usernameInput = document.getElementById('username-input');
@@ -115,30 +280,11 @@ async function initDashboardPage() {
     const saveButton = document.getElementById('save-button');
     const logoutButton = document.getElementById('logout-button');
     const statusMessage = document.getElementById('form-status-message');
-    
-    // Agrupa os campos que podem ser editados
     const editableInputs = [usernameInput, fullNameInput, websiteInput];
 
-    // 1. VERIFICAR A SESSÃO E PROTEGER A PÁGINA
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-        window.location.href = '/login.html';
-        return;
-    }
-    const user = session.user;
-
-    // 2. BUSCAR DADOS DO PERFIL E PREENCHER O FORMULÁRIO
     try {
-        let { data: profile, error } = await supabase
-            .from('profiles')
-            .select(`username, full_name, website`)
-            .eq('id', user.id)
-            .single();
-
-        if (error && error.code !== 'PGRST116') { // Ignora erro se o perfil não existir ainda
-            throw error;
-        }
-        
+        let { data: profile, error } = await supabase.from('profiles').select(`username, full_name, website`).eq('id', user.id).single();
+        if (error && error.code !== 'PGRST116') throw error;
         if (profile) {
             welcomeMessage.textContent = `Bem-vindo(a), ${profile.username || user.email}!`;
             emailDisplay.value = user.email;
@@ -155,43 +301,27 @@ async function initDashboardPage() {
         statusMessage.style.color = 'red';
     }
 
-    // 3. LÓGICA DOS BOTÕES E FORMULÁRIO
-    
-    // Função para alternar para o modo de edição
     function enterEditMode() {
-        editableInputs.forEach(input => input.disabled = false); // Habilita todos os inputs
+        editableInputs.forEach(input => input.disabled = false);
         editButton.classList.add('hidden');
         saveButton.classList.remove('hidden');
         statusMessage.textContent = 'Você agora pode editar seus dados.';
         statusMessage.style.color = 'var(--color-accent-blue)';
     }
 
-    // Função para sair do modo de edição
     function exitEditMode() {
-        editableInputs.forEach(input => input.disabled = true); // Desabilita todos os inputs
+        editableInputs.forEach(input => input.disabled = true);
         editButton.classList.remove('hidden');
         saveButton.classList.add('hidden');
     }
 
-    // Botão de Editar: Chama a função para entrar no modo de edição
     editButton.addEventListener('click', enterEditMode);
-
-    // Formulário (Salvar): Envia os dados atualizados para o Supabase
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         saveButton.disabled = true;
         saveButton.textContent = 'Salvando...';
-
-        const updates = {
-            id: user.id,
-            username: usernameInput.value,
-            full_name: fullNameInput.value,
-            website: websiteInput.value,
-            updated_at: new Date(),
-        };
-
+        const updates = { id: user.id, username: usernameInput.value, full_name: fullNameInput.value, website: websiteInput.value, updated_at: new Date() };
         const { error } = await supabase.from('profiles').upsert(updates);
-
         if (error) {
             statusMessage.textContent = 'Erro ao salvar: ' + error.message;
             statusMessage.style.color = 'red';
@@ -199,43 +329,37 @@ async function initDashboardPage() {
             statusMessage.textContent = 'Perfil salvo com sucesso!';
             statusMessage.style.color = 'green';
             welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`;
-            exitEditMode(); // Sai do modo de edição
+            exitEditMode();
         }
-
         saveButton.disabled = false;
         saveButton.textContent = 'Salvar Alterações';
     });
-
-    // Botão de Logout
     logoutButton.addEventListener('click', async () => {
         await supabase.auth.signOut();
         window.location.href = '/login.html';
     });
+
+    // Define o estado inicial da página
+    setActiveLink(navLinkProjects);
+    showContent(contentProjects);
 }
+
 
 /**
  * Inicializa a lógica do formulário de Login.
  */
 function initLoginForm() {
     const loginForm = document.getElementById('login-form');
-    if (!loginForm) return; // Só executa se estiver na página de login
+    if (!loginForm) return;
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const email = loginForm.querySelector('#email').value;
         const password = loginForm.querySelector('#password').value;
-
-        // Usando a função de login do Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-        });
-
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
         if (error) {
             alert('Erro no login: ' + error.message);
         } else {
-            // Se o login for sucesso, redireciona para o dashboard!
             alert('Login realizado com sucesso!');
             window.location.href = '/dashboard.html';
         }
@@ -251,44 +375,29 @@ function initSignUpForm() {
 
     signUpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        // 1. Capturar os valores de TODOS os campos
         const fullName = signUpForm.querySelector('#full_name').value;
         const username = signUpForm.querySelector('#username').value;
         const email = signUpForm.querySelector('#email').value;
         const password = signUpForm.querySelector('#password').value;
         const passwordConfirm = signUpForm.querySelector('#password-confirm').value;
 
-        // 2. Validação simples: verificar se as senhas coincidem
         if (password !== passwordConfirm) {
             alert('As senhas não coincidem. Por favor, tente novamente.');
-            return; // Interrompe a execução
+            return;
         }
         
-        // 3. Enviar os dados para o Supabase
         const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
-            options: {
-                // 'data' é um campo especial para enviar metadados do usuário
-                data: { 
-                    full_name: fullName,
-                    username: username,
-                }
-            }
+            options: { data: { full_name: fullName, username: username } }
         });
 
         if (error) {
             alert('Erro ao criar a conta: ' + error.message);
         } else {
             alert('Conta criada com sucesso! Verifique seu email para confirmar.');
-            // Podemos adicionar o nome e usuário no perfil aqui mesmo, após o cadastro.
             if (data.user) {
-                await supabase
-                    .from('profiles')
-                    .insert([
-                        { id: data.user.id, full_name: fullName, username: username }
-                    ]);
+                await supabase.from('profiles').insert([{ id: data.user.id, full_name: fullName, username: username }]);
             }
             window.location.href = '/login.html';
         }
@@ -376,21 +485,16 @@ function initAIChatWidget() {
 
     if (!fab || !chatWindow) return;
 
-    // Abrir/Fechar a janela do chat
     fab.addEventListener('click', () => {
         chatWindow.classList.toggle('open');
         fabIconOpen.classList.toggle('hidden');
         fabIconClose.classList.toggle('hidden');
     });
     
-    // Enviar mensagem
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const messageText = chatInput.value.trim();
-
-        if (messageText.length < 10) {
-            return;
-        }
+        if (messageText.length < 10) return;
 
         appendMessage(messageText, 'user');
         chatInput.value = '';
@@ -410,7 +514,6 @@ function initAIChatWidget() {
             if (!response.ok) { 
                 throw new Error(result.message || 'Ocorreu um erro na API.');
             }
-            
             updateMessage(typingIndicator, result.result);
 
         } catch (error) {
@@ -445,20 +548,18 @@ function initAIChatWidget() {
 
 
 // Executa todas as inicializações quando o DOM estiver pronto.
-document.addEventListener('DOMContentLoaded', async () => { // Adicione 'async' aqui
-    AOS.init({ /* ... */ });
+document.addEventListener('DOMContentLoaded', async () => {
+    AOS.init({ duration: 800, once: true, offset: 50 });
     
-    // Inicializações que não dependem do usuário
     initMobileMenu();
     initContactForm();
     initAIChatWidget();
     initSignUpForm();
     initLoginForm();
-    
-    // Roda a verificação da página de dashboard por último
-    await initDashboardPage(); // Adicione 'await' aqui
-    await updateUserNav();
     initForgotPasswordForm();
     initResetPasswordForm();
-
+    
+    await initDashboardPage();
+    await updateUserNav();
+    initAdminPage();
 });

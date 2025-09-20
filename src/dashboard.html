@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Perfil | DevX</title>
+    <title>Dashboard | DevX</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -48,53 +48,70 @@
       </div>
     </header>
 
-    <main>
-    <section class="min-h-screen flex items-center justify-center pt-32 pb-16">
-        <div class="container w-full max-w-2xl p-8 card">
-            <div class="text-center mb-8">
-                <h2 id="welcome-message" class="text-3xl font-bold">Carregando...</h2>
-                <p>Gerencie suas informações de perfil abaixo.</p>
-            </div>
+    <div class="flex" style="padding-top: 88px;"> <aside class="w-64 flex-shrink-0 h-[calc(100vh-88px)] border-r dark:border-gray-700 p-4">
+            <nav class="flex flex-col space-y-2">
+                <h3 class="px-2 text-xs font-semibold uppercase text-gray-400 tracking-wider">Menu</h3>
+                <a href="#" id="nav-link-projects" class="flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                    Projetos
+                </a>
+                <a href="#" id="nav-link-profile" class="flex items-center px-2 py-2 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
+                    Perfil
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-grow p-8 overflow-auto h-[calc(100vh-88px)]">
             
-            <form id="profile-form" class="space-y-4 text-left">
-                <div>
-                    <label for="email-display" class="block mb-2 text-sm font-semibold">Email</label>
-                    <input type="email" id="email-display" class="opacity-70" disabled />
-                </div>
-                
-                <div>
-                    <label for="username-input" class="block mb-2 text-sm font-semibold">Nome de Usuário</label>
-                    <input type="text" id="username-input" disabled />
-                </div>
+            <div id="content-projects">
+                <section class="w-full max-w-4xl mx-auto">
+                    <div class="card p-8 text-left">
+                        <h3 class="text-2xl font-bold mb-4">Status do seu Projeto</h3>
+                        <div id="project-info" class="space-y-2">
+                            <p><strong>Projeto:</strong> <span id="project-name">Carregando...</span></p>
+                            <p><strong>Status:</strong> <span id="project-status" class="font-semibold">Carregando...</span></p>
+                        </div>
+                    </div>
+                </section>
+            </div>
 
-                <div>
-                    <label for="full_name-input" class="block mb-2 text-sm font-semibold">Nome Completo</label>
-                    <input type="text" id="full_name-input" disabled />
-                </div>
+            <div id="content-profile" class="hidden">
+                 <section class="w-full max-w-2xl mx-auto">
+                    <div class="p-8 card">
+                        <div class="text-center mb-8">
+                            <h2 id="welcome-message" class="text-3xl font-bold">Carregando...</h2>
+                            <p>Gerencie suas informações de perfil abaixo.</p>
+                        </div>
+                        
+                        <form id="profile-form" class="space-y-4 text-left">
+                            <div>
+                                <label for="email-display" class="block mb-2 text-sm font-semibold">Email</label>
+                                <input type="email" id="email-display" class="opacity-70" disabled />
+                            </div>
+                            <div>
+                                <label for="username-input" class="block mb-2 text-sm font-semibold">Nome de Usuário</label>
+                                <input type="text" id="username-input" disabled />
+                            </div>
+                            <div>
+                                <label for="full_name-input" class="block mb-2 text-sm font-semibold">Nome Completo</label>
+                                <input type="text" id="full_name-input" disabled />
+                            </div>
+                            <div>
+                                <label for="website-input" class="block mb-2 text-sm font-semibold">Website</label>
+                                <input type="text" id="website-input" placeholder="https://exemplo.com" disabled />
+                            </div>
+                            <div id="form-status-message" class="h-6 text-center text-sm"></div>
+                            <div class="flex justify-end items-center gap-4 pt-4">
+                                <button type="button" id="edit-button" class="btn btn-primary">Editar Perfil</button>
+                                <button type="submit" id="save-button" class="btn btn-primary hidden">Salvar Alterações</button>
+                                <button type="button" id="logout-button" class="btn bg-red-600 hover:bg-red-700 text-white">Sair</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            </div>
 
-                <div>
-                    <label for="website-input" class="block mb-2 text-sm font-semibold">Website</label>
-                    <input type="text" id="website-input" placeholder="https://exemplo.com" disabled />
-                </div>
-                
-                <div id="form-status-message" class="h-6 text-center text-sm"></div>
-
-                <div class="flex justify-end items-center gap-4 pt-4">
-                    <button type="button" id="edit-button" class="btn btn-primary">Editar Perfil</button>
-                    <button type="submit" id="save-button" class="btn btn-primary hidden">Salvar Alterações</button>
-                    <button type="button" id="logout-button" class="btn bg-red-600 hover:bg-red-700 text-white">Sair</button>
-                </div>
-            </form>
-        </div>
-    </section>
-
-</main>
-    
-    <footer class="py-8 border-t">
-       <div class="container mx-auto px-6 text-center text-sm">
-            <p>© 2025 DevX. Todos os direitos reservados.</p>
-        </div>
-    </footer>
+        </main>
+    </div>
     
     <script type="module" src="/js/main.js"></script>
 </body>

@@ -22,6 +22,7 @@ export default defineConfig({
         dashboard: resolve(__dirname, 'src/dashboard.html'),
         esqueci_senha: resolve(__dirname, 'src/esqueci-senha.html'),
         resetar_senha: resolve(__dirname, 'src/resetar-senha.html'),
+        admin: resolve(__dirname, 'src/admin.html'),
       },
     },
   },
