@@ -167,37 +167,48 @@ function initForgotPasswordForm() {
 }
 
 
-/**
- * Atualiza os links de navegação no header com base no status de login do usuário.
- */
+// INÍCIO DA NOVA VERSÃO DA FUNÇÃO
 async function updateUserNav() {
-    const authLinksContainer = document.getElementById('auth-links');
-    if (!authLinksContainer) return;
+    // MUDANÇA: Seleciona TODOS os elementos com a classe '.auth-links'
+    const authLinksContainers = document.querySelectorAll('.auth-links');
+    if (authLinksContainers.length === 0) return;
 
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session) {
         // Usuário está LOGADO
-        authLinksContainer.innerHTML = `
+        const navHTML = `
             <a href="/dashboard.html">Meu Perfil</a>
-            <a href="#" id="logout-link" class="btn btn-primary !py-2 !px-4">Sair</a>
+            <a href="#" id="logout-link" class="btn btn-primary !py-2 !px-4 hidden md:block">Sair</a>
+            <a href="#" id="logout-link-mobile" class="md:hidden font-semibold">Sair</a>
         `;
+        // MUDANÇA: Itera e atualiza CADA container (desktop e mobile)
+        authLinksContainers.forEach(container => {
+            container.innerHTML = navHTML;
+        });
 
-        const logoutLink = document.getElementById('logout-link');
-        logoutLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await supabase.auth.signOut();
-            window.location.href = '/login.html';
+        // O listener de logout precisa ser adicionado a ambos os botões
+        document.querySelectorAll('#logout-link, #logout-link-mobile').forEach(link => {
+            link.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await supabase.auth.signOut();
+                window.location.href = '/login.html';
+            });
         });
 
     } else {
         // Usuário está DESLOGADO
-        authLinksContainer.innerHTML = `
-            <a href="/index#contato">Contato</a>
+        const navHTML = `
+            <a href="/index.html#contato" class="hidden md:block">Contato</a>
             <a href="/login.html" class="btn btn-primary !py-2 !px-4">Login</a>
         `;
+        // MUDANÇA: Itera e atualiza CADA container
+        authLinksContainers.forEach(container => {
+            container.innerHTML = navHTML;
+        });
     }
 }
+// FIM DA NOVA VERSÃO DA FUNÇÃO
 
 
 /**
