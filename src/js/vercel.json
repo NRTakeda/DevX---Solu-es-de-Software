@@ -1,4 +1,8 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false
+  "rewrites": [
+    {
+      "source": "/:path((?!api/|assets/|css/|js/|img/|favicon.png).*)",
+      "destination": "/:path.html"
+    }
+  ]
 }
