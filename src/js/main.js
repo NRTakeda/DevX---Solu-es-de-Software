@@ -346,9 +346,10 @@ async function initDashboardPage() {
 
 
 /**
+ * [VERSÃO CORRIGIDA COM REDIRECIONAMENTO INTELIGENTE]
  * Inicializa a lógica do formulário de Login.
  */
-function initLoginForm() {
+async function initLoginForm() { // Adicionado 'async'
     const loginForm = document.getElementById('login-form');
     if (!loginForm) return;
 
@@ -356,15 +357,38 @@ function initLoginForm() {
         e.preventDefault();
         const email = loginForm.querySelector('#email').value;
         const password = loginForm.querySelector('#password').value;
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email, password: password });
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
         if (error) {
             alert('Erro no login: ' + error.message);
-        } else {
-            alert('Login realizado com sucesso!');
-            window.location.href = '/dashboard.html';
+        } else if (data.user) {
+            // Após o login, busca o perfil para verificar a role
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', data.user.id)
+                .single();
+
+            if (profileError) {
+                alert('Erro ao buscar perfil: ' + profileError.message);
+            } else {
+                alert('Login realizado com sucesso!');
+                // Se o usuário for admin, redireciona para a página de admin
+                if (profile && profile.role === 'admin') {
+                    window.location.href = '/admin.html';
+                } else {
+                    // Senão, redireciona para o dashboard normal
+                    window.location.href = '/dashboard.html';
+                }
+            }
         }
     });
 }
+
 
 /**
  * Inicializa a lógica do formulário de Cadastro com campos adicionais.
