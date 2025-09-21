@@ -1,3 +1,4 @@
+import { showSuccessToast, showErrorToast } from './notifications.js';
 import { supabase } from '../supabaseClient.js';
 
 function initSignUpForm() {
@@ -13,7 +14,7 @@ function initSignUpForm() {
         const passwordConfirm = signUpForm.querySelector('#password-confirm').value;
 
         if (password !== passwordConfirm) {
-            alert('As senhas não coincidem. Por favor, tente novamente.');
+            showErrorToast('As senhas não coincidem. Por favor, tente novamente.');
             return;
         }
         
@@ -24,9 +25,9 @@ function initSignUpForm() {
         });
 
         if (error) {
-            alert('Erro ao criar a conta: ' + error.message);
+            showErrorToast('Erro ao criar a conta: ' + error.message);
         } else {
-            alert('Conta criada com sucesso! Verifique seu email para confirmar.');
+            showErrorToast('Conta criada com sucesso! Verifique seu email para confirmar.');
             window.location.href = '/login.html';
         }
     });
@@ -47,7 +48,7 @@ async function initLoginForm() {
         });
 
         if (error) {
-            alert('Erro no login: ' + error.message);
+            showErrorToast('Erro no login: ' + error.message);
         } else if (data.user) {
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
@@ -56,9 +57,9 @@ async function initLoginForm() {
                 .single();
 
             if (profileError) {
-                alert('Erro ao buscar perfil: ' + profileError.message);
+                showErrorToast('Erro ao buscar perfil: ' + profileError.message);
             } else {
-                alert('Login realizado com sucesso!');
+                showErrorToast('Login realizado com sucesso!');
                 if (profile && profile.role === 'admin') {
                     window.location.href = '/admin.html';
                 } else {
@@ -83,9 +84,9 @@ function initForgotPasswordForm() {
         });
 
         if (error) {
-            alert('Erro: ' + error.message);
+            showErrorToast('Erro: ' + error.message);
         } else {
-            alert('Se este email estiver cadastrado, um link de recuperação foi enviado.');
+            showErrorToast('Se este email estiver cadastrado, um link de recuperação foi enviado.');
             form.reset();
         }
     });
@@ -101,7 +102,7 @@ function initResetPasswordForm() {
         const confirmPassword = form.querySelector('#confirm-password').value;
 
         if (newPassword !== confirmPassword) {
-            alert('As senhas não coincidem!');
+            showErrorToast('As senhas não coincidem!');
             return;
         }
 
@@ -110,9 +111,9 @@ function initResetPasswordForm() {
         });
 
         if (error) {
-            alert('Erro ao redefinir a senha: ' + error.message);
+            showErrorToast('Erro ao redefinir a senha: ' + error.message);
         } else {
-            alert('Senha redefinida com sucesso! Você já pode fazer o login.');
+            showErrorToast('Senha redefinida com sucesso! Você já pode fazer o login.');
             window.location.href = '/login.html';
         }
     });

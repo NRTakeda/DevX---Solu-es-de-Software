@@ -18,7 +18,7 @@ export async function initAdmin() {
         .single();
 
     if (profileError || profile.role !== 'admin') {
-        alert('Acesso negado.');
+        showErrorToast('Acesso negado.');
         window.location.href = '/dashboard.html'; // Redireciona não-admins
         return;
     }
@@ -93,9 +93,9 @@ export async function initAdmin() {
             .eq('id', id);
 
         if (error) {
-            alert('Erro ao atualizar o projeto: ' + error.message);
+            showErrorToast('Erro ao atualizar o projeto: ' + error.message);
         } else {
-            alert('Projeto atualizado com sucesso!');
+            showErrorToast('Projeto atualizado com sucesso!');
             editModal.classList.add('hidden');
             await renderProjects(); // Re-renderiza a tabela
         }
