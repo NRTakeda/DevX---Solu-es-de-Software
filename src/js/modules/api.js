@@ -1,13 +1,54 @@
+import { showSuccessToast, showErrorToast } from './notifications.js';
+
+// NOVA IMPORTAÇÃO DAS NOTIFICAÇÕES
+import { showSuccessToast, showErrorToast } from './notifications.js';
+
+// FUNÇÃO ATUALIZADA com a verificação de e-mail em tempo real
 function initContactForm() {
     const contactForm = document.getElementById('contact-form');
     if (!contactForm) return;
 
+    const emailInput = contactForm.querySelector('#email');
+    const submitButton = contactForm.querySelector('#submit-button');
     const formStatus = document.getElementById('form-status');
-    const submitButton = contactForm.querySelector('button[type="submit"]');
+
+    // --- LÓGICA DE VERIFICAÇÃO EM TEMPO REAL ---
+    emailInput.addEventListener('blur', async () => {
+        const email = emailInput.value;
+        if (email.length < 5 || !email.includes('@')) {
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.innerHTML = 'Verificando e-mail...';
+
+        try {
+            const response = await fetch('/api/verify-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const result = await response.json();
+
+            if (result.isValid) {
+                showSuccessToast('E-mail parece ser válido!');
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Enviar Mensagem';
+            } else {
+                showErrorToast(result.message || 'Este e-mail não parece ser válido.');
+                submitButton.innerHTML = 'E-mail Inválido';
+            }
+        } catch (error) {
+            console.error('Erro ao verificar e-mail:', error);
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Enviar Mensagem';
+        }
+    });
+    // --- FIM DA LÓGICA DE VERIFICAÇÃO ---
     
     contactForm.addEventListener('submit', async (e) => {
         e.preventDefault(); 
-        const originalButtonText = submitButton.innerHTML;
+        const originalButtonText = 'Enviar Mensagem'; // Definido para o texto original
         submitButton.disabled = true;
         submitButton.innerHTML = 'Enviando...';
         formStatus.innerHTML = '';
@@ -22,7 +63,10 @@ function initContactForm() {
                 body: JSON.stringify(data),
             });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Ocorreu um erro.');
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Ocorreu um erro no servidor.');
+            }
             formStatus.innerHTML = `<p class="text-green-500">${result.message}</p>`;
             contactForm.reset();
         } catch (error) {
@@ -34,6 +78,7 @@ function initContactForm() {
     });
 }
 
+// ESTA FUNÇÃO PERMANECE IGUAL
 function initAIChatWidget() {
     const fab = document.getElementById('chat-fab');
     if (!fab) return;
@@ -99,6 +144,7 @@ function initAIChatWidget() {
     }
 }
 
+// ESTA FUNÇÃO PERMANECE IGUAL
 export function initApiHandlers() {
     initContactForm();
     initAIChatWidget();
