@@ -1,4 +1,4 @@
-// /api/verify-email.js (VERSÃO FINAL E ROBUSTA)
+// /api/verify-email.js (VERSÃO DE DEPURAÇÃO PARA VER A RESPOSTA)
 import { z } from 'zod';
 
 const emailSchema = z.object({
@@ -26,9 +26,9 @@ export default async function handler(request, response) {
     const apiResponse = await fetch(`https://emailvalidation.abstractapi.com/v1/?api_key=${apiKey}&email=${email}`);
     const data = await apiResponse.json();
 
-    // --- NOVA LÓGICA MAIS INTELIGENTE ---
-    // Consideramos o e-mail válido a menos que a API tenha certeza de que ele é "INENTREGÁVEL".
-    // Isso permite e-mails de grandes provedores que retornam "RISKY" ou "UNKNOWN".
+    // --- LINHA DE DEPURAÇÃO ADICIONADA ---
+    console.log('RESPOSTA COMPLETA DA ABSTRACT API:', JSON.stringify(data, null, 2));
+
     if (data.deliverability !== 'UNDELIVERABLE') {
       return response.status(200).json({ isValid: true });
     } else {
@@ -37,7 +37,6 @@ export default async function handler(request, response) {
     
   } catch (error) {
     console.error("Erro na API de verificação:", error);
-    // Em caso de erro na API, por segurança, permitimos o cadastro para não bloquear o usuário.
     return response.status(200).json({ isValid: true, message: 'Não foi possível verificar o e-mail no momento.' });
   }
 }
