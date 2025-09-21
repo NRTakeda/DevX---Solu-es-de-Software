@@ -1,5 +1,3 @@
-import { showSuccessToast, showErrorToast } from './notifications.js';
-
 // NOVA IMPORTAÇÃO DAS NOTIFICAÇÕES
 import { showSuccessToast, showErrorToast } from './notifications.js';
 
