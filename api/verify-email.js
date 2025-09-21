@@ -1,4 +1,4 @@
-// /api/verify-email.js
+// /api/verify-email.js (VERSÃO CORRIGIDA)
 import { z } from 'zod';
 
 const emailSchema = z.object({
@@ -26,19 +26,21 @@ export default async function handler(request, response) {
     const apiResponse = await fetch(`https://emailvalidation.abstractapi.com/v1/?api_key=${apiKey}&email=${email}`);
     const data = await apiResponse.json();
 
-    // Verificamos a "entregabilidade" e se o SMTP (servidor de email) é válido.
     const isDeliverable = data.deliverability === 'DELIVERABLE';
-    const isSmtpValid = data.is_smtp_valid.value;
+    
+    // --- A CORREÇÃO ESTÁ AQUI ---
+    // Usamos `?.` para acessar `value` de forma segura.
+    // Se `is_smtp_valid` não existir, `isSmtpValid` se tornará `undefined` sem quebrar o código.
+    const isSmtpValid = data.is_smtp_valid?.value;
 
     if (isDeliverable && isSmtpValid) {
       return response.status(200).json({ isValid: true });
     } else {
-      // Se não for entregável, retornamos um motivo genérico para o usuário.
       return response.status(200).json({ isValid: false, message: 'Este endereço de e-mail não parece ser válido.' });
     }
   } catch (error) {
     console.error(error);
-    // Em caso de erro na API, permitimos o cadastro para não bloquear o usuário.
+    // Em caso de erro na nossa lógica, permitimos o cadastro para não bloquear o usuário.
     return response.status(200).json({ isValid: true, message: 'Não foi possível verificar o e-mail no momento.' });
   }
 }
