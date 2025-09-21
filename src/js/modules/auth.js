@@ -5,6 +5,41 @@ function initSignUpForm() {
     const signUpForm = document.getElementById('signup-form');
     if (!signUpForm) return;
 
+    const emailInput = signUpForm.querySelector('#email');
+    const submitButton = signUpForm.querySelector('button[type="submit"]');
+
+    emailInput.addEventListener('blur', async () => {
+        const email = emailInput.value;
+        if (email.length < 5 || !email.includes('@')) {
+            return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Verificando e-mail...';
+
+        try {
+            const response = await fetch('/api/verify-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email }),
+            });
+            const result = await response.json();
+
+            if (result.isValid) {
+                showSuccessToast('E-mail parece ser válido!');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Criar Conta';
+            } else {
+                showErrorToast(result.message || 'Este e-mail não parece ser válido.');
+                submitButton.textContent = 'E-mail Inválido';
+            }
+        } catch (error) {
+            console.error('Erro ao verificar e-mail:', error);
+            submitButton.disabled = false;
+            submitButton.textContent = 'Criar Conta';
+        }
+    });
+
     signUpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fullName = signUpForm.querySelector('#full_name').value;
@@ -27,13 +62,14 @@ function initSignUpForm() {
         if (error) {
             showErrorToast('Erro ao criar a conta: ' + error.message);
         } else {
-            showErrorToast('Conta criada com sucesso! Verifique seu email para confirmar.');
+            // CORREÇÃO: Usando a notificação de sucesso
+            showSuccessToast('Conta criada com sucesso! Verifique seu email para confirmar.');
             window.location.href = '/login.html';
         }
     });
 }
 
-async function initLoginForm() {
+function initLoginForm() {
     const loginForm = document.getElementById('login-form');
     if (!loginForm) return;
 
@@ -59,7 +95,8 @@ async function initLoginForm() {
             if (profileError) {
                 showErrorToast('Erro ao buscar perfil: ' + profileError.message);
             } else {
-                showErrorToast('Login realizado com sucesso!');
+                // CORREÇÃO: Usando a notificação de sucesso
+                showSuccessToast('Login realizado com sucesso!');
                 if (profile && profile.role === 'admin') {
                     window.location.href = '/admin.html';
                 } else {
@@ -86,7 +123,8 @@ function initForgotPasswordForm() {
         if (error) {
             showErrorToast('Erro: ' + error.message);
         } else {
-            showErrorToast('Se este email estiver cadastrado, um link de recuperação foi enviado.');
+            // CORREÇÃO: Usando a notificação de sucesso
+            showSuccessToast('Se este email estiver cadastrado, um link de recuperação foi enviado.');
             form.reset();
         }
     });
@@ -113,7 +151,8 @@ function initResetPasswordForm() {
         if (error) {
             showErrorToast('Erro ao redefinir a senha: ' + error.message);
         } else {
-            showErrorToast('Senha redefinida com sucesso! Você já pode fazer o login.');
+            // CORREÇÃO: Usando a notificação de sucesso
+            showSuccessToast('Senha redefinida com sucesso! Você já pode fazer o login.');
             window.location.href = '/login.html';
         }
     });
