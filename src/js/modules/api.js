@@ -100,63 +100,112 @@ function initAIChatWidget() {
     const chatSendButton = document.getElementById('chat-send-button');
     const messagesContainer = document.getElementById('chat-messages');
 
-    fab.addEventListener('click', () => {
-        chatWindow.classList.toggle('open');
-    });
-    
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const messageText = chatInput.value.trim();
-        if (messageText.length < 10) return;
+    let conversationHistory = [];
 
-        appendMessage(messageText, 'user');
-        chatInput.value = '';
+    // O "PROMPT DE SISTEMA": As instruções invisíveis que guiam a IA durante toda a conversa.
+    const systemPrompt = `Você é o "DevX Consultant", um assistente conversacional da agência de software DevX. Seu objetivo é guiar o usuário em 3 etapas. Seja sempre breve e amigável.
+
+    ETAPA 1: Quando o usuário apresentar a ideia inicial, sua primeira resposta deve ser uma breve análise da oportunidade de negócio (2-3 frases). Termine EXATAMENTE com a frase: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
+
+    ETAPA 2: Na sua segunda resposta, liste 3 exemplos de sites reais do segmento do cliente. Use o formato '>>>' para a lista. Depois da lista, pergunte EXATAMENTE: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
+
+    ETAPA 3: Após o usuário responder à pergunta sobre os exemplos, sua terceira e última resposta deve ser o HTML para o botão de ação. Responda APENAS com o seguinte código HTML, sem nenhum texto adicional: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
+    `;
+
+    // Função para adicionar uma mensagem à interface do chat
+    function appendMessage(text, sender, isHtml = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `${sender}-message`;
+        if (isHtml) {
+            // Usa o DOMPurify para renderizar o HTML do botão de forma segura
+            messageDiv.innerHTML = DOMPurify.sanitize(text);
+        } else {
+            messageDiv.innerHTML = `<p>${text}</p>`;
+        }
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return messageDiv;
+    }
+
+    // Função para chamar a API de IA com o histórico
+    async function getAiResponse() {
         chatInput.disabled = true;
         chatSendButton.disabled = true;
-        
         const typingIndicator = appendMessage('...', 'ai');
 
         try {
             const response = await fetch('/api/consultor-ia', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description: messageText })
+                body: JSON.stringify({ history: conversationHistory })
             });
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Erro na API.');
-            updateMessage(typingIndicator, result.result);
+            if (!response.ok) throw new Error(result.message);
+
+            // Adiciona a resposta da IA ao histórico e à tela
+            typingIndicator.remove(); // Remove o "..."
+            appendMessage(result.result, 'ai', result.result.includes('<button'));
+            conversationHistory.push({ role: 'model', parts: [{ text: result.result }] });
+
         } catch (error) {
-            updateMessage(typingIndicator, `Desculpe, erro: ${error.message}`);
+            typingIndicator.remove();
+            appendMessage(`Desculpe, ocorreu um erro: ${error.message}`, 'ai');
         } finally {
             chatInput.disabled = false;
             chatSendButton.disabled = false;
             chatInput.focus();
         }
+    }
+
+    fab.addEventListener('click', () => {
+        chatWindow.classList.toggle('open');
+        // Reinicia a conversa sempre que o chat é aberto
+        if (chatWindow.classList.contains('open')) {
+            messagesContainer.innerHTML = '';
+            appendMessage('Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?', 'ai');
+            // Prepara o histórico com as instruções do sistema e a primeira mensagem da IA
+            conversationHistory = [
+                { role: 'user', parts: [{ text: systemPrompt }] },
+                { role: 'model', parts: [{ text: 'Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?' }] }
+            ];
+        }
     });
     
-    function appendMessage(text, sender) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `${sender}-message`;
-        messageDiv.innerHTML = `<p>${text}</p>`;
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        return messageDiv;
-    }
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const messageText = chatInput.value.trim();
+        if (messageText.length === 0) return;
 
-    function updateMessage(messageDiv, newHtml) {
-        let text = newHtml.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        text = text.replace(/^#### (.*$)/gm, '<h4 class="text-xl font-bold mb-4">$1</h4>');
-        text = text.replace(/^##### (.*$)/gm, '<h5 class="text-lg font-semibold text-sky-500 mb-2">$1</h5>');
-        text = text.replace(/^\&gt;\&gt;\&gt; (.*$)/gm, '<li>$1</li>');
-        text = text.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>').replace(/<\/ul>\s*<ul>/g, '');
-        
-        messageDiv.innerHTML = text;
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
+        // Adiciona a mensagem do usuário ao histórico e à tela
+        appendMessage(messageText, 'user');
+        conversationHistory.push({ role: 'user', parts: [{ text: messageText }] });
+        chatInput.value = '';
+
+        // Pede a resposta da IA
+        await getAiResponse();
+    });
+
+    messagesContainer.addEventListener('click', (e) => {
+        if (e.target.id === 'iniciar-projeto-btn') {
+            // A lógica para salvar o projeto, que já implementamos, continua aqui.
+            // Extrai a ideia original e a resposta da IA do histórico da conversa.
+            const userIdea = conversationHistory.find(msg => msg.role === 'user' && msg.parts[0].text !== systemPrompt)?.parts[0].text;
+            const aiResponse = conversationHistory.filter(msg => msg.role === 'model').map(msg => msg.parts[0].text).join('\n---\n');
+
+            if (!userIdea) {
+                showErrorToast("Não foi possível capturar a ideia. Por favor, tente novamente.");
+                return;
+            }
+
+            const projectSummary = `Ideia Original do Cliente:\n${userIdea}\n\n---\nHistórico da Conversa com a IA:\n${aiResponse}`;
+            sessionStorage.setItem('pendingProjectDescription', projectSummary);
+            window.location.href = '/login.html';
+        }
+    });
 }
 
-// ESTA PARTE ESTAVA FALTANDO
 export function initApiHandlers() {
+    // A função initContactForm() continua aqui, sem alterações
     initContactForm();
     initAIChatWidget();
 }
