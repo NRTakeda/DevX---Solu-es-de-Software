@@ -53,7 +53,27 @@ export default async function handler(request, response) {
   const modelName = "gemini-1.5-flash";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  const prompt = `Você é um consultor de projetos de software. Um cliente descreveu a ideia: "${description}". Analise e faça o seguinte: 1. Recomende o tipo de solução de software mais adequada (ex: Plataforma Web customizada, E-commerce de alta performance, API robusta, etc.). 2. Liste 3 vantagens que esta solução trará, focando em tecnologia, escalabilidade e experiência do usuário. Termine com um apelo à ação, como 'Gostou da sugestão? Podemos desenvolver este projeto para você. Vamos conversar!'. Formate a resposta em Markdown com um título (####), um subtítulo (#####), e uma lista (>>>).`;
+  const prompt = `Você é o "DevX Consultant", um consultor de negócios e tecnologia da DevX, uma agência de software de elite. Somos especialistas em transformar ideias de negócio em plataformas digitais robustas e de alta performance.
+
+  Um potencial cliente descreveu a seguinte ideia de negócio: "${description}"
+  
+  Sua tarefa é criar uma mini-apresentação estratégica para este cliente. A linguagem deve ser focada em negócios e benefícios, evitando jargões técnicos excessivos. Siga estritamente os seguintes 5 passos:
+  
+  1.  #### Análise da Oportunidade
+      Comece com uma breve análise da ideia, tratando-a como uma oportunidade de negócio digital e destacando seu potencial de mercado.
+  
+  2.  #### Exemplos de Mercado
+      Pesquise e liste 3 exemplos de sites ou plataformas de sucesso que atuam em um segmento similar, para servir de inspiração e validar o modelo de negócio. Use o formato '>>>' para a lista.
+  
+  3.  #### Nossa Proposta de Solução
+      Descreva a solução digital que a DevX construiria (ex: Plataforma Web Interativa, E-commerce de Nicho, Aplicativo de Serviços). Foque no que a solução faria pelo negócio do cliente e nos problemas que resolveria.
+  
+  4.  #### Vantagens Estratégicas
+      Liste 3 vantagens-chave que nossa abordagem traria para o negócio, usando termos como: "Experiência do Cliente Superior", "Operações Escaláveis para Crescimento Futuro", ou "Coleta de Dados para Decisões Inteligentes".
+  
+  5.  #### Próximo Passo
+      // A MUDANÇA ESTÁ AQUI, NO TEXTO DO BOTÃO
+      Termine com uma chamada para ação clara e direta para o usuário criar um projeto. Gere o seguinte texto e botão em HTML, sem usar markdown: '<p>Gostou da proposta? O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'`;
 
   try {
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
@@ -71,11 +91,11 @@ export default async function handler(request, response) {
     }
 
     const result = await geminiResponse.json();
-    const text = result.candidates[0]?.content?.parts[0]?.text;
-
-    if (!text) {
-        throw new Error("Não foi possível gerar uma análise. Tente descrever sua ideia de outra forma.");
+    const candidate = result.candidates?.[0];
+    if (!candidate || !candidate.content?.parts?.[0]?.text) {
+        throw new Error("A resposta da IA veio em um formato inesperado ou vazia.");
     }
+    const text = candidate.content.parts[0].text;
 
     return response.status(200).json({ result: text });
 
