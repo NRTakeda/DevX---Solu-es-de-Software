@@ -50,31 +50,31 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Chave de API não configurada no servidor.' });
   }
 
-  // --- MELHORIA 1: MUDANÇA PARA O MODELO PRO ---
-  const modelName = "gemini-1.5-pro-latest";
+  // --- SOLUÇÃO: VOLTAMOS PARA O MODELO FLASH (GRATUITO SEM RESTRIÇÕES) ---
+  const modelName = "gemini-1.5-flash";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  // --- MELHORIA 2: NOVO PROMPT REFINADO ---
+  // --- MANTEMOS O PROMPT REFINADO E DE ALTA QUALIDADE ---
   const prompt = `Você é o "DevX Consultant", um consultor de negócios digitais da agência de software DevX. Sua especialidade é traduzir ideias de negócio em estratégias de produto digital. EVITE jargões técnicos. Sua linguagem deve ser clara, profissional e focada em benefícios de negócio.
 
-Um cliente descreveu a ideia: "${description}"
+  Um cliente descreveu a ideia: "${description}"
 
-Sua tarefa é criar uma mini-apresentação estratégica para este cliente. Siga estritamente a estrutura abaixo, usando os títulos em negrito como estão:
+  Sua tarefa é criar uma mini-apresentação estratégica para este cliente. Siga estritamente a estrutura abaixo, usando os títulos em negrito como estão:
 
-**Análise da Oportunidade**
-(Faça uma breve análise da ideia como uma oportunidade de negócio digital.)
+  **Análise da Oportunidade**
+  (Faça uma breve análise da ideia como uma oportunidade de negócio digital.)
 
-**Exemplos de Mercado**
-(Pesquise e liste 3 exemplos de sites ou plataformas REAIS e ESPECÍFICOS que atuam em um segmento similar. Não descreva categorias genéricas. Ex: se a ideia é uma farmácia online, cite "Droga Raia", "Onofre", etc.)
+  **Exemplos de Mercado**
+  (Pesquise e liste 3 exemplos de sites ou plataformas REAIS e ESPECÍFICOS que atuam em um segmento similar. Não descreva categorias genéricas.)
 
-**Nossa Proposta de Solução**
-(Descreva a solução digital que a DevX construiria, focando nos benefícios para o negócio do cliente. Ex: "Construiríamos uma plataforma de E-commerce intuitiva que permitiria aos seus clientes comprar com facilidade e agendar entregas...")
+  **Nossa Proposta de Solução**
+  (Descreva a solução digital que a DevX construiria, focando nos benefícios para o negócio do cliente.)
 
-**Vantagens Estratégicas**
-(Liste 3 vantagens de negócio que nossa solução traria. Ex: "Fidelização de Clientes", "Otimização de Processos", "Expansão de Mercado".)
+  **Vantagens Estratégicas**
+  (Liste 3 vantagens de negócio que nossa solução traria.)
 
-**Próximo Passo**
-(Gere o seguinte texto e botão em HTML, sem usar markdown: '<p>Gostou da proposta? O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>')`;
+  **Próximo Passo**
+  (Gere o seguinte texto e botão em HTML, sem usar markdown: '<p>Gostou da proposta? O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>')`;
 
   try {
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
