@@ -53,7 +53,7 @@ export default async function handler(request, response) {
   const modelName = "gemini-1.5-flash";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  const prompt = `Você é um consultor de projetos de software. Um cliente descreveu a ideia: "${description}". Analise e faça o seguinte: 1. Recomende o tipo de solução de software mais adequada (ex: Plataforma Web customizada, E-commerce de alta performance, API robusta, etc.). 2. Liste 3 vantagens que esta solução trará, focando em tecnologia, escalabilidade e experiência do usuário. Termine com um apelo à ação, como 'Gostou da sugestão? Podemos desenvolver este projeto para você. Vamos conversar!'. Formate a resposta em Markdown com um título (####), um subtítulo (#####), e uma lista (>>>).`;
+  // CORREÇÃO: Mantido apenas o prompt mais refinado e completo.
   const prompt = `Você é o "DevX Consultant", um consultor de negócios e tecnologia da DevX, uma agência de software de elite. Somos especialistas em transformar ideias de negócio em plataformas digitais robustas e de alta performance.
 
   Um potencial cliente descreveu a seguinte ideia de negócio: "${description}"
@@ -73,7 +73,6 @@ export default async function handler(request, response) {
       Liste 3 vantagens-chave que nossa abordagem traria para o negócio, usando termos como: "Experiência do Cliente Superior", "Operações Escaláveis para Crescimento Futuro", ou "Coleta de Dados para Decisões Inteligentes".
   
   5.  #### Próximo Passo
-      // A MUDANÇA ESTÁ AQUI, NO TEXTO DO BOTÃO
       Termine com uma chamada para ação clara e direta para o usuário criar um projeto. Gere o seguinte texto e botão em HTML, sem usar markdown: '<p>Gostou da proposta? O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'`;
 
   try {
@@ -92,10 +91,8 @@ export default async function handler(request, response) {
     }
 
     const result = await geminiResponse.json();
-    const text = result.candidates[0]?.content?.parts[0]?.text;
-
-    if (!text) {
-        throw new Error("Não foi possível gerar uma análise. Tente descrever sua ideia de outra forma.");
+    
+    // CORREÇÃO: Unificada a extração do texto em uma única lógica robusta.
     const candidate = result.candidates?.[0];
     if (!candidate || !candidate.content?.parts?.[0]?.text) {
         throw new Error("A resposta da IA veio em um formato inesperado ou vazia.");
@@ -108,3 +105,4 @@ export default async function handler(request, response) {
     console.error(error);
     return response.status(500).json({ message: 'Ocorreu um erro ao processar sua solicitação.' });
   }
+}
