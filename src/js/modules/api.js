@@ -1,5 +1,7 @@
 import { showSuccessToast, showErrorToast } from './notifications.js';
 
+import DOMPurify from 'dompurify';
+
 function initContactForm() {
     const contactForm = document.getElementById('contact-form');
     if (!contactForm) return;
