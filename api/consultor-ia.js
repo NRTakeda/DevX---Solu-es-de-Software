@@ -50,30 +50,31 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Chave de API não configurada no servidor.' });
   }
 
-  const modelName = "gemini-1.5-flash";
+  // --- MELHORIA 1: MUDANÇA PARA O MODELO PRO ---
+  const modelName = "gemini-1.5-pro-latest";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  const prompt = `Você é o "DevX Consultant", um consultor de negócios e tecnologia da DevX, uma agência de software de elite. Somos especialistas em transformar ideias de negócio em plataformas digitais robustas e de alta performance.
+  // --- MELHORIA 2: NOVO PROMPT REFINADO ---
+  const prompt = `Você é o "DevX Consultant", um consultor de negócios digitais da agência de software DevX. Sua especialidade é traduzir ideias de negócio em estratégias de produto digital. EVITE jargões técnicos. Sua linguagem deve ser clara, profissional e focada em benefícios de negócio.
 
-  Um potencial cliente descreveu a seguinte ideia de negócio: "${description}"
-  
-  Sua tarefa é criar uma mini-apresentação estratégica para este cliente. A linguagem deve ser focada em negócios e benefícios, evitando jargões técnicos excessivos. Siga estritamente os seguintes 5 passos:
-  
-  1.  #### Análise da Oportunidade
-      Comece com uma breve análise da ideia, tratando-a como uma oportunidade de negócio digital e destacando seu potencial de mercado.
-  
-  2.  #### Exemplos de Mercado
-      Pesquise e liste 3 exemplos de sites ou plataformas de sucesso que atuam em um segmento similar, para servir de inspiração e validar o modelo de negócio. Use o formato '>>>' para a lista.
-  
-  3.  #### Nossa Proposta de Solução
-      Descreva a solução digital que a DevX construiria (ex: Plataforma Web Interativa, E-commerce de Nicho, Aplicativo de Serviços). Foque no que a solução faria pelo negócio do cliente e nos problemas que resolveria.
-  
-  4.  #### Vantagens Estratégicas
-      Liste 3 vantagens-chave que nossa abordagem traria para o negócio, usando termos como: "Experiência do Cliente Superior", "Operações Escaláveis para Crescimento Futuro", ou "Coleta de Dados para Decisões Inteligentes".
-  
-  5.  #### Próximo Passo
-      // A MUDANÇA ESTÁ AQUI, NO TEXTO DO BOTÃO
-      Termine com uma chamada para ação clara e direta para o usuário criar um projeto. Gere o seguinte texto e botão em HTML, sem usar markdown: '<p>Gostou da proposta? O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'`;
+Um cliente descreveu a ideia: "${description}"
+
+Sua tarefa é criar uma mini-apresentação estratégica para este cliente. Siga estritamente a estrutura abaixo, usando os títulos em negrito como estão:
+
+**Análise da Oportunidade**
+(Faça uma breve análise da ideia como uma oportunidade de negócio digital.)
+
+**Exemplos de Mercado**
+(Pesquise e liste 3 exemplos de sites ou plataformas REAIS e ESPECÍFICOS que atuam em um segmento similar. Não descreva categorias genéricas. Ex: se a ideia é uma farmácia online, cite "Droga Raia", "Onofre", etc.)
+
+**Nossa Proposta de Solução**
+(Descreva a solução digital que a DevX construiria, focando nos benefícios para o negócio do cliente. Ex: "Construiríamos uma plataforma de E-commerce intuitiva que permitiria aos seus clientes comprar com facilidade e agendar entregas...")
+
+**Vantagens Estratégicas**
+(Liste 3 vantagens de negócio que nossa solução traria. Ex: "Fidelização de Clientes", "Otimização de Processos", "Expansão de Mercado".)
+
+**Próximo Passo**
+(Gere o seguinte texto e botão em HTML, sem usar markdown: '<p>Gostou da proposta? O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>')`;
 
   try {
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
