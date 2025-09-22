@@ -50,31 +50,10 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Chave de API não configurada no servidor.' });
   }
 
-  // --- SOLUÇÃO: VOLTAMOS PARA O MODELO FLASH (GRATUITO SEM RESTRIÇÕES) ---
   const modelName = "gemini-1.5-flash";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  // --- MANTEMOS O PROMPT REFINADO E DE ALTA QUALIDADE ---
-  const prompt = `Você é o "DevX Consultant", um consultor de negócios digitais da agência de software DevX. Sua especialidade é traduzir ideias de negócio em estratégias de produto digital. EVITE jargões técnicos. Sua linguagem deve ser clara, profissional e focada em benefícios de negócio.
-
-  Um cliente descreveu a ideia: "${description}"
-
-  Sua tarefa é criar uma mini-apresentação estratégica para este cliente. Siga estritamente a estrutura abaixo, usando os títulos em negrito como estão:
-
-  **Análise da Oportunidade**
-  (Faça uma breve análise da ideia como uma oportunidade de negócio digital.)
-
-  **Exemplos de Mercado**
-  (Pesquise e liste 3 exemplos de sites ou plataformas REAIS e ESPECÍFICOS que atuam em um segmento similar. Não descreva categorias genéricas.)
-
-  **Nossa Proposta de Solução**
-  (Descreva a solução digital que a DevX construiria, focando nos benefícios para o negócio do cliente.)
-
-  **Vantagens Estratégicas**
-  (Liste 3 vantagens de negócio que nossa solução traria.)
-
-  **Próximo Passo**
-  (Gere o seguinte texto e botão em HTML, sem usar markdown: '<p>Gostou da proposta? O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>')`;
+  const prompt = `Você é um consultor de projetos de software. Um cliente descreveu a ideia: "${description}". Analise e faça o seguinte: 1. Recomende o tipo de solução de software mais adequada (ex: Plataforma Web customizada, E-commerce de alta performance, API robusta, etc.). 2. Liste 3 vantagens que esta solução trará, focando em tecnologia, escalabilidade e experiência do usuário. Termine com um apelo à ação, como 'Gostou da sugestão? Podemos desenvolver este projeto para você. Vamos conversar!'. Formate a resposta em Markdown com um título (####), um subtítulo (#####), e uma lista (>>>).`;
 
   try {
     const payload = { contents: [{ parts: [{ text: prompt }] }] };
@@ -92,11 +71,11 @@ export default async function handler(request, response) {
     }
 
     const result = await geminiResponse.json();
-    const candidate = result.candidates?.[0];
-    if (!candidate || !candidate.content?.parts?.[0]?.text) {
-        throw new Error("A resposta da IA veio em um formato inesperado ou vazia.");
+    const text = result.candidates[0]?.content?.parts[0]?.text;
+
+    if (!text) {
+        throw new Error("Não foi possível gerar uma análise. Tente descrever sua ideia de outra forma.");
     }
-    const text = candidate.content.parts[0].text;
 
     return response.status(200).json({ result: text });
 
