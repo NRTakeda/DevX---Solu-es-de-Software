@@ -1,134 +1,138 @@
 import { supabase } from '../supabaseClient.js';
+import { showSuccessToast, showErrorToast } from './notifications.js';
 
+/**
+ * Cria um novo projeto no Supabase a partir dos dados salvos no sessionStorage.
+ * @param {string} description - O resumo da conversa com a IA.
+ * @param {string} userId - O ID do usuário autenticado.
+ */
+async function createPendingProject(description, userId) {
+    showSuccessToast("Finalizando a criação do seu projeto a partir da sua ideia...");
+
+    const { error } = await supabase
+        .from('projects')
+        .insert({
+            description: description,
+            client_id: userId,
+            name: "Projeto via Consultor IA" // Nome padrão para projetos criados pela IA
+        });
+
+    if (error) {
+        showErrorToast('Erro ao criar seu projeto pendente. Por favor, tente novamente.');
+        console.error(error);
+    } else {
+        showSuccessToast('Seu novo projeto foi criado com sucesso!');
+    }
+
+    // CRUCIAL: Limpa a ideia pendente para não ser criada novamente
+    sessionStorage.removeItem('pendingProjectDescription');
+}
+
+/**
+ * Função principal que inicializa a página do Dashboard.
+ */
 export async function initDashboard() {
-    // Seletor para garantir que o código só rode na página do dashboard
-    const navLinkProjects = document.getElementById('nav-link-projects');
-    if (!navLinkProjects) return;
+    const welcomeMessage = document.getElementById('welcome-message');
+    if (!welcomeMessage) return; // Garante que o código só rode na página do dashboard
 
-    // --- ELEMENTOS DO DOM ---
-    const navLinkProfile = document.getElementById('nav-link-profile');
-    const contentProjects = document.getElementById('content-projects');
-    const contentProfile = document.getElementById('content-profile');
-    
-    // --- LÓGICA DE NAVEGAÇÃO DA SIDEBAR ---
-    function showContent(contentToShow) {
-        [contentProjects, contentProfile].forEach(content => content.classList.add('hidden'));
-        contentToShow.classList.remove('hidden');
-    }
-
-    function setActiveLink(activeLink) {
-        [navLinkProjects, navLinkProfile].forEach(link => link.classList.remove('bg-gray-200', 'dark:bg-gray-700'));
-        activeLink.classList.add('bg-gray-200', 'dark:bg-gray-700');
-    }
-
-    navLinkProjects.addEventListener('click', (e) => {
-        e.preventDefault();
-        setActiveLink(navLinkProjects);
-        showContent(contentProjects);
-    });
-
-    navLinkProfile.addEventListener('click', (e) => {
-        e.preventDefault();
-        setActiveLink(navLinkProfile);
-        showContent(contentProfile);
-    });
-
-    // --- LÓGICA DE DADOS (Busca de perfil, projeto, etc.) ---
+    // Protege a página, redirecionando se o usuário não estiver logado
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         window.location.href = '/login.html';
         return;
     }
 
-    // Lógica para buscar e preencher os dados do PROJETO
-    try {
-        const projectNameEl = document.getElementById('project-name');
-        const projectStatusEl = document.getElementById('project-status');
-        let { data: project, error } = await supabase.from('projects').select('name, status').eq('client_id', user.id).single();
-        if (error && error.code !== 'PGRST116') throw error;
-        
-        if (project) {
-            projectNameEl.textContent = project.name;
-            projectStatusEl.textContent = project.status;
-            if (project.status === 'Concluído') projectStatusEl.classList.add('text-green-500');
-            else if (project.status === 'Em Desenvolvimento') projectStatusEl.classList.add('text-orange-500');
-        } else {
-            projectNameEl.textContent = 'Nenhum projeto ativo encontrado.';
-            projectStatusEl.textContent = '-';
-        }
-    } catch (error) {
-        console.error('Erro ao buscar projeto:', error.message);
-        document.getElementById('project-name').textContent = 'Erro ao carregar projeto.';
+    // --- LÓGICA DA FASE 3: VERIFICA E CRIA O PROJETO PENDENTE ---
+    const pendingDescription = sessionStorage.getItem('pendingProjectDescription');
+    if (pendingDescription) {
+        // Se encontrou uma ideia pendente, chama a função para criar o projeto
+        await createPendingProject(pendingDescription, user.id);
     }
-
-    // Lógica para buscar e preencher os dados do PERFIL
-    const profileForm = document.getElementById('profile-form');
-    const welcomeMessage = document.getElementById('welcome-message');
-    const emailDisplay = document.getElementById('email-display');
-    const usernameInput = document.getElementById('username-input');
-    const fullNameInput = document.getElementById('full_name-input');
-    const websiteInput = document.getElementById('website-input');
-    const editButton = document.getElementById('edit-button');
-    const saveButton = document.getElementById('save-button');
-    const logoutButton = document.getElementById('logout-button');
-    const statusMessage = document.getElementById('form-status-message');
-    const editableInputs = [usernameInput, fullNameInput, websiteInput];
-
-    try {
-        let { data: profile, error } = await supabase.from('profiles').select(`username, full_name, website`).eq('id', user.id).single();
-        if (error && error.code !== 'PGRST116') throw error;
-        
-        welcomeMessage.textContent = `Bem-vindo(a), ${profile?.username || user.email}!`;
-        emailDisplay.value = user.email;
-        if (profile) {
-            usernameInput.value = profile.username || '';
-            fullNameInput.value = profile.full_name || '';
-            websiteInput.value = profile.website || '';
-        }
-    } catch (error) {
-        console.error('Erro ao buscar perfil:', error.message);
-        statusMessage.textContent = 'Erro ao carregar perfil.';
-        statusMessage.classList.add('text-red-500');
-    }
-
-    function toggleEditMode(isEditing) {
-        editableInputs.forEach(input => input.disabled = !isEditing);
-        editButton.classList.toggle('hidden', isEditing);
-        saveButton.classList.toggle('hidden', !isEditing);
-        statusMessage.textContent = isEditing ? 'Você agora pode editar seus dados.' : '';
-        statusMessage.classList.remove('text-red-500', 'text-green-500');
-    }
-
-    editButton.addEventListener('click', () => toggleEditMode(true));
-
-    profileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        saveButton.disabled = true;
-        saveButton.textContent = 'Salvando...';
-        
-        const updates = { id: user.id, username: usernameInput.value, full_name: fullNameInput.value, website: websiteInput.value, updated_at: new Date() };
-        const { error } = await supabase.from('profiles').upsert(updates);
-        
-        if (error) {
-            statusMessage.textContent = 'Erro ao salvar: ' + error.message;
-            statusMessage.classList.add('text-red-500');
-        } else {
-            statusMessage.textContent = 'Perfil salvo com sucesso!';
-            statusMessage.classList.add('text-green-500');
-            welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`;
-            toggleEditMode(false);
-        }
-        
-        saveButton.disabled = false;
-        saveButton.textContent = 'Salvar Alterações';
-    });
     
-    logoutButton.addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.href = '/login.html';
+    // --- LÓGICA DO DASHBOARD ---
+    const projectsListDiv = document.getElementById('projects-list');
+    const createProjectSection = document.getElementById('criar-projeto');
+    const limitWarningSection = document.getElementById('limite-projetos-aviso');
+    const createProjectForm = document.getElementById('create-project-form');
+    const descriptionTextarea = document.getElementById('project-description');
+    
+    welcomeMessage.textContent = `Bem-vindo(a), ${user.email}!`;
+
+    // Função interna para buscar e renderizar os projetos na tela
+    async function renderProjects() {
+        const { data: projects, error, count } = await supabase
+            .from('projects')
+            .select('*', { count: 'exact' }) // Pede para contar o total de projetos
+            .eq('client_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            showErrorToast('Erro ao carregar seus projetos.');
+            projectsListDiv.innerHTML = '<p class="text-red-500">Não foi possível carregar os projetos.</p>';
+            return;
+        }
+
+        projectsListDiv.innerHTML = ''; // Limpa a lista antes de renderizar
+
+        if (projects.length === 0) {
+            projectsListDiv.innerHTML = '<div class="card p-4 text-center"><p>Você ainda não solicitou nenhum projeto.</p></div>';
+        } else {
+            projects.forEach(project => {
+                const projectCard = document.createElement('div');
+                projectCard.className = 'card p-4 flex justify-between items-center flex-wrap gap-2';
+                projectCard.innerHTML = `
+                    <div class="flex-grow">
+                        <h4 class="font-bold">${project.name}</h4>
+                        <p class="text-sm text-gray-500">${project.description.substring(0, 80)}...</p>
+                    </div>
+                    <span class="font-semibold text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">${project.status}</span>
+                `;
+                projectsListDiv.appendChild(projectCard);
+            });
+        }
+        
+        // Controla a exibição do formulário com base no limite de 5 projetos
+        if (count >= 5) {
+            createProjectSection.classList.add('hidden');
+            limitWarningSection.classList.remove('hidden');
+        } else {
+            createProjectSection.classList.remove('hidden');
+            limitWarningSection.classList.add('hidden');
+        }
+    }
+
+    // Lógica para o formulário de criação manual de projetos
+    createProjectForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const description = descriptionTextarea.value;
+        if (description.length < 20) {
+            showErrorToast('Por favor, descreva sua ideia com mais detalhes (mínimo 20 caracteres).');
+            return;
+        }
+
+        const submitButton = createProjectForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Enviando...';
+
+        const { error } = await supabase
+            .from('projects')
+            .insert({
+                description: description,
+                client_id: user.id
+            });
+
+        if (error) {
+            showErrorToast('Erro ao enviar sua solicitação. Tente novamente.');
+        } else {
+            showSuccessToast('Solicitação de projeto enviada com sucesso!');
+            descriptionTextarea.value = '';
+            await renderProjects(); // Atualiza a lista de projetos na tela
+        }
+        
+        submitButton.disabled = false;
+        submitButton.textContent = 'Enviar Solicitação de Projeto';
     });
 
-    // Define o estado inicial da página
-    setActiveLink(navLinkProjects);
-    showContent(contentProjects);
+    // Chama a função para renderizar tudo ao carregar a página
+    await renderProjects();
 }
