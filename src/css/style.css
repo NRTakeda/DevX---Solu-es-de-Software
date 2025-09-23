@@ -391,3 +391,62 @@ html.dark .chat-window {
     background-color: var(--color-text-secondary);
     cursor: not-allowed;
 }
+
+/* --- Estilos da Nova Sidebar do Dashboard --- */
+#dashboard-container {
+    --sidebar-width: 16rem; /* 256px */
+    --sidebar-collapsed-width: 4.5rem; /* 72px */
+}
+
+#dashboard-sidebar {
+    transition: width 0.3s ease-in-out;
+    width: var(--sidebar-collapsed-width);
+    overflow-x: hidden;
+    padding-top: 88px; /* Para compensar o header fixo */
+}
+
+#main-content {
+    transition: margin-left 0.3s ease-in-out;
+    padding-left: var(--sidebar-collapsed-width);
+}
+
+#dashboard-sidebar .nav-link-text {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Estado Expandido: Hover (se não estiver fixada) ou Fixada */
+#dashboard-container:not(.sidebar-pinned):hover #dashboard-sidebar,
+#dashboard-container.sidebar-pinned #dashboard-sidebar {
+    width: var(--sidebar-width);
+}
+
+#dashboard-container:not(.sidebar-pinned):hover #dashboard-sidebar .nav-link-text,
+#dashboard-container.sidebar-pinned #dashboard-sidebar .nav-link-text {
+    opacity: 1;
+}
+
+#main-content {
+    transition: margin-left 0.3s ease-in-out;
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+#dashboard-container:not(.sidebar-pinned):hover #main-content {
+    margin-left: var(--sidebar-width);
+}
+
+#dashboard-container.sidebar-pinned #main-content {
+    margin-left: var(--sidebar-width);
+}
+
+.nav-link.active {
+    background-color: var(--color-light-gray-bg);
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+#sidebar-pin-btn.pinned {
+    transform: rotate(45deg);
+    color: var(--color-accent-blue);
+}
+
