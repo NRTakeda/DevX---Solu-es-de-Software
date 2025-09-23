@@ -71,8 +71,6 @@ header a {
     transition: color 0.3s ease;
 }
 
-/* Isso está na seção --- Cabeçalho --- */
-/* APLICA O EFEITO DE HOVER APENAS SE O LINK NÃO TIVER A CLASSE .btn */
 header nav a:not(.btn):hover {
     color: var(--color-accent-blue);
 }
@@ -174,7 +172,10 @@ html.dark input[type="email"]:focus,
 html.dark textarea:focus {
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
 }
-label.font-semibold {
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
     font-weight: 600;
 }
 
@@ -237,8 +238,7 @@ html.dark .contato-background::before {
     height: auto;
 }
 
-/* --- ESTILOS PARA O NOVO AI CHAT WIDGET --- */
-
+/* --- ESTILOS PARA O AI CHAT WIDGET --- */
 .chat-fab {
     position: fixed;
     bottom: 2rem;
@@ -257,12 +257,10 @@ html.dark .contato-background::before {
     cursor: pointer;
     transition: transform 0.3s ease, background-color 0.3s ease;
 }
-
 .chat-fab:hover {
     transform: scale(1.1);
     filter: brightness(110%);
 }
-
 .chat-window {
     position: fixed;
     bottom: 7.5rem;
@@ -284,17 +282,14 @@ html.dark .contato-background::before {
     transition: opacity 0.3s ease, transform 0.3s ease;
     pointer-events: none;
 }
-
 html.dark .chat-window {
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
-
 .chat-window.open {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
 }
-
 .chat-header {
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--color-border);
@@ -303,7 +298,6 @@ html.dark .chat-window {
 .chat-header p {
     font-size: 0.9rem;
 }
-
 .chat-messages {
     flex-grow: 1;
     padding: 1.5rem;
@@ -312,14 +306,12 @@ html.dark .chat-window {
     flex-direction: column;
     gap: 1rem;
 }
-
 .user-message, .ai-message {
     padding: 0.75rem 1rem;
     border-radius: 1rem;
     max-width: 85%;
     line-height: 1.5;
 }
-
 .user-message {
     background-color: var(--color-accent-blue);
     color: white;
@@ -330,7 +322,6 @@ html.dark .chat-window {
     color: white;
     font-size: 1rem;
 }
-
 .ai-message {
     background-color: var(--color-light-gray-bg);
     color: var(--color-text-primary);
@@ -345,14 +336,12 @@ html.dark .chat-window {
     font-size: 1rem;
     color: var(--color-text-secondary);
 }
-
 .chat-input-area {
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--color-border);
     background-color: var(--color-background);
     flex-shrink: 0;
 }
-
 .chat-input {
     flex-grow: 1;
     background-color: var(--color-light-gray-bg);
@@ -369,7 +358,6 @@ html.dark .chat-window {
     box-shadow: none;
     outline: none;
 }
-
 .chat-send-button {
     background-color: var(--color-accent-blue);
     color: white;
@@ -392,130 +380,20 @@ html.dark .chat-window {
     cursor: not-allowed;
 }
 
-/* --- Estilos da Nova Sidebar do Dashboard --- */
-#dashboard-container {
-    --sidebar-width: 16rem; /* 256px */
-    --sidebar-collapsed-width: 4.5rem; /* 72px */
-}
-
-#dashboard-sidebar {
-    transition: width 0.3s ease-in-out;
-    width: var(--sidebar-collapsed-width);
-    overflow-x: hidden;
-    padding-top: 88px; /* Para compensar o header fixo */
-}
-
-#main-content {
-    transition: margin-left 0.3s ease-in-out;
-    padding-left: var(--sidebar-collapsed-width);
-}
-
-#dashboard-sidebar .nav-link-text {
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-/* Estado Expandido: Hover (se não estiver fixada) ou Fixada */
-#dashboard-container:not(.sidebar-pinned):hover #dashboard-sidebar,
-#dashboard-container.sidebar-pinned #dashboard-sidebar {
-    width: var(--sidebar-width);
-}
-
-#dashboard-container:not(.sidebar-pinned):hover #dashboard-sidebar .nav-link-text,
-#dashboard-container.sidebar-pinned #dashboard-sidebar .nav-link-text {
-    opacity: 1;
-}
-
-#main-content {
-    transition: margin-left 0.3s ease-in-out;
-    margin-left: var(--sidebar-collapsed-width);
-}
-
-#dashboard-container:not(.sidebar-pinned):hover #main-content {
-    margin-left: var(--sidebar-width);
-}
-
-#dashboard-container.sidebar-pinned #main-content {
-    margin-left: var(--sidebar-width);
-}
-
-.nav-link.active {
-    background-color: var(--color-light-gray-bg);
-    color: var(--color-text-primary);
-    font-weight: 600;
-}
-
-#sidebar-pin-btn.pinned {
-    transform: rotate(45deg);
-    color: var(--color-accent-blue);
-}
-
-/* --- Estilos da Nova Sidebar Interativa --- */
-#dashboard-container {
-    --sidebar-width: 16rem; /* 256px */
-    --sidebar-collapsed-width: 4.5rem; /* 72px */
-}
-
-#dashboard-sidebar {
-    transition: width 0.2s ease-in-out;
-    width: var(--sidebar-collapsed-width);
-    overflow-x: hidden;
-}
-
-#dashboard-sidebar .nav-link-text {
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-}
-
-/* Estado Expandido: Hover (se não estiver fixada) */
-#dashboard-container:not(.sidebar-pinned):hover #dashboard-sidebar {
-    width: var(--sidebar-width);
-}
-#dashboard-container:not(.sidebar-pinned):hover #dashboard-sidebar .nav-link-text {
-    opacity: 1;
-}
-
-/* Estado Expandido: Fixada (pinned) */
-#dashboard-container.sidebar-pinned #dashboard-sidebar {
-    width: var(--sidebar-width);
-}
-#dashboard-container.sidebar-pinned #dashboard-sidebar .nav-link-text {
-    opacity: 1;
-}
-
-#main-content {
-    transition: margin-left 0.2s ease-in-out;
-    margin-left: var(--sidebar-collapsed-width);
-}
-
-#dashboard-container:not(.sidebar-pinned):hover #main-content {
-    margin-left: var(--sidebar-width);
-}
-
-#dashboard-container.sidebar-pinned #main-content {
-    margin-left: var(--sidebar-width);
-}
-
-.nav-link.active {
-    background-color: var(--color-light-gray-bg);
-    color: var(--color-text-primary);
-    font-weight: 600;
-}
-
-#sidebar-pin-btn.pinned .w-6 {
-    transform: rotate(90deg);
-    color: var(--color-accent-blue);
-}
-
-/* --- Estilos da Sidebar Fixa do Dashboard --- */
+/* --- Estilos da Sidebar Responsiva do Dashboard (VERSÃO FINAL) --- */
 #dashboard-sidebar {
     width: 16rem; /* 256px */
-    padding-top: 88px; /* Para compensar o header fixo */
 }
 
 #main-content {
-    margin-left: 16rem; /* 256px, a mesma largura da sidebar */
-    padding-top: 88px;
+    padding-top: 100px;
+}
+
+/* Em telas de Desktop (md e acima), a sidebar empurra o conteúdo */
+@media (min-width: 768px) {
+    #main-content {
+        margin-left: 16rem; /* 256px */
+    }
 }
 
 .nav-link.active {
