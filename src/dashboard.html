@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Perfil | DevX</title>
+    <title>Meu Dashboard | DevX</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -13,73 +13,40 @@
 
     <div id="header-placeholder"></div>
 
-    <div class="flex" style="padding-top: 88px;">
+    <main class="container mx-auto px-6 pt-32 pb-16">
+        <h2 id="welcome-message" class="text-3xl font-bold mb-8">Carregando...</h2>
 
-        <aside class="w-64 flex-shrink-0 h-[calc(100vh-88px)] border-r dark:border-gray-700 p-4">
-            <nav class="flex flex-col space-y-2">
-                <h3 class="px-2 text-xs font-semibold uppercase text-gray-400 tracking-wider">Menu</h3>
-                <a href="#" id="nav-link-projects" class="flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                    Projetos
-                </a>
-                <a href="#" id="nav-link-profile" class="flex items-center px-2 py-2 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
-                    Perfil
-                </a>
-            </nav>
-        </aside>
-
-        <main class="flex-grow p-8 overflow-auto h-[calc(100vh-88px)]">
-
-            <div id="content-projects">
-                <section class="w-full max-w-4xl mx-auto">
-                    <div class="card p-8 text-left">
-                        <h3 class="text-2xl font-bold mb-4">Status do seu Projeto</h3>
-                        <div id="project-info" class="space-y-2">
-                            <p><strong>Projeto:</strong> <span id="project-name">Carregando...</span></p>
-                            <p><strong>Status:</strong> <span id="project-status" class="font-semibold">Carregando...</span></p>
-                        </div>
-                    </div>
-                </section>
+        <section id="meus-projetos" class="mb-12">
+            <h3 class="text-2xl font-semibold mb-4">Meus Projetos</h3>
+            <div id="projects-list" class="space-y-4">
+                <p>Carregando seus projetos...</p>
             </div>
+        </section>
 
-            <div id="content-profile" class="hidden">
-                <section class="w-full max-w-2xl mx-auto">
-                    <div class="p-8 card">
-                        <div class="text-center mb-8">
-                            <h2 id="welcome-message" class="text-3xl font-bold">Carregando...</h2>
-                            <p>Gerencie suas informações de perfil abaixo.</p>
-                        </div>
-                        
-                        <form id="profile-form" class="space-y-4 text-left">
-                            <div>
-                                <label for="email-display" class="block mb-2 text-sm font-semibold">Email</label>
-                                <input type="email" id="email-display" class="opacity-70" disabled />
-                            </div>
-                            <div>
-                                <label for="username-input" class="block mb-2 text-sm font-semibold">Nome de Usuário</label>
-                                <input type="text" id="username-input" disabled />
-                            </div>
-                            <div>
-                                <label for="full_name-input" class="block mb-2 text-sm font-semibold">Nome Completo</label>
-                                <input type="text" id="full_name-input" disabled />
-                            </div>
-                            <div>
-                                <label for="website-input" class="block mb-2 text-sm font-semibold">Website</label>
-                                <input type="text" id="website-input" placeholder="https://exemplo.com" disabled />
-                            </div>
-                            <div id="form-status-message" class="h-6 text-center text-sm"></div>
-                            <div class="flex justify-end items-center gap-4 pt-4">
-                                <button type="button" id="edit-button" class="btn btn-primary">Editar Perfil</button>
-                                <button type="submit" id="save-button" class="btn btn-primary hidden">Salvar Alterações</button>
-                                <button type="button" id="logout-button" class="btn bg-red-600 hover:bg-red-700 text-white">Sair</button>
-                            </div>
-                        </form>
+        <section id="criar-projeto" class="hidden">
+            <h3 class="text-2xl font-semibold mb-4">Solicitar Novo Projeto</h3>
+            <div class="card p-8">
+                <form id="create-project-form">
+                    <div class="mb-4">
+                        <label for="project-description" class="block mb-2 text-sm font-semibold">Descreva sua ideia ou necessidade</label>
+                        <textarea id="project-description" rows="5" placeholder="Ex: Preciso de uma landing page para meu novo produto de marketing digital, com foco em conversão e design moderno..." required></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Seja o mais detalhado possível. Nossa equipe analisará sua solicitação.</p>
                     </div>
-                </section>
+                    <button type="submit" class="btn btn-primary w-full">Enviar Solicitação de Projeto</button>
+                </form>
             </div>
+        </section>
 
-        </main>
-    </div>
+        <section id="limite-projetos-aviso" class="hidden">
+            <div class="card p-8 text-center bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                <h3 class="text-xl font-semibold text-yellow-800 dark:text-yellow-300">Limite de projetos atingido</h3>
+                <p class="text-yellow-700 dark:text-yellow-400 mt-2">Você já atingiu o limite de 5 projetos solicitados. Para novos projetos, por favor, entre em contato.</p>
+            </div>
+        </section>
+    </main>
 
+    <div id="footer-placeholder"></div>
+    
     <script type="module" src="/js/main.js"></script>
 </body>
 
