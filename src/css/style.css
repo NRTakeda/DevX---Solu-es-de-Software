@@ -385,10 +385,6 @@ html.dark .chat-window {
     width: 16rem; /* 256px */
 }
 
-#main-content {
-    padding-top: 100px;
-}
-
 /* Em telas de Desktop (md e acima), a sidebar empurra o conteúdo */
 @media (min-width: 768px) {
     #main-content {
