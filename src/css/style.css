@@ -506,3 +506,20 @@ html.dark .chat-window {
     transform: rotate(90deg);
     color: var(--color-accent-blue);
 }
+
+/* --- Estilos da Sidebar Fixa do Dashboard --- */
+#dashboard-sidebar {
+    width: 16rem; /* 256px */
+    padding-top: 88px; /* Para compensar o header fixo */
+}
+
+#main-content {
+    margin-left: 16rem; /* 256px, a mesma largura da sidebar */
+    padding-top: 88px;
+}
+
+.nav-link.active {
+    background-color: var(--color-light-gray-bg);
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
