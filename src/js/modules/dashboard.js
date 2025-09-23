@@ -6,7 +6,7 @@ async function createPendingProject(description, userId) {
     const { error } = await supabase.from('projects').insert({
         description: description,
         client_id: userId,
-        // O DB já tem valores padrão para 'name' e 'status', então não precisamos enviá-los.
+        // O DB já tem valores padrão para 'name' e 'status'
     });
     if (error) {
         showErrorToast('Erro ao criar seu projeto pendente.');
@@ -18,17 +18,14 @@ async function createPendingProject(description, userId) {
 }
 
 export async function initDashboard() {
-    // Seletor para garantir que o código só rode na página correta
     if (!document.getElementById('dashboard-container')) return;
 
-    // Protege a página e obtém o usuário
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         window.location.href = '/login.html';
         return;
     }
 
-    // Verifica e cria projeto pendente vindo da IA
     const pendingDescription = sessionStorage.getItem('pendingProjectDescription');
     if (pendingDescription) {
         await createPendingProject(pendingDescription, user.id);
@@ -42,28 +39,32 @@ export async function initDashboard() {
     const contentProjects = document.getElementById('content-projects');
     const contentProfile = document.getElementById('content-profile');
     const sidebarPinBtn = document.getElementById('sidebar-pin-btn');
+    
+    // --- ELEMENTOS DA SEÇÃO DE PROJETOS ---
     const projectsListDiv = document.getElementById('projects-list');
     const createProjectSection = document.getElementById('criar-projeto');
     const limitWarningSection = document.getElementById('limite-projetos-aviso');
     const createProjectForm = document.getElementById('create-project-form');
     const descriptionTextarea = document.getElementById('project-description');
+
+    // --- ELEMENTOS DA SEÇÃO DE PERFIL ---
     const profileForm = document.getElementById('profile-form');
     const emailDisplay = document.getElementById('email-display');
     const usernameInput = document.getElementById('username-input');
+    const fullNameInput = document.getElementById('full_name-input');
+    const websiteInput = document.getElementById('website-input');
     const editButton = document.getElementById('edit-button');
     const saveButton = document.getElementById('save-button');
     const logoutButton = document.getElementById('logout-button');
     const statusMessage = document.getElementById('form-status-message');
     
-    welcomeMessage.textContent = `Bem-vindo(a), ${user.email}!`;
-
     // --- LÓGICA DE CONTROLE DA SIDEBAR ---
     function showContent(contentToShow) {
-        [contentProjects, contentProfile].forEach(content => content.classList.add('hidden'));
+        [contentProjects, contentProfile].forEach(c => c.classList.add('hidden'));
         contentToShow.classList.remove('hidden');
     }
     function setActiveLink(activeLink) {
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
         activeLink.classList.add('active');
     }
     navLinkProjects.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProjects); showContent(contentProjects); });
@@ -76,7 +77,13 @@ export async function initDashboard() {
     // --- LÓGICA DE PROJETOS ---
     async function renderProjects() {
         const { data: projects, error, count } = await supabase.from('projects').select('*', { count: 'exact' }).eq('client_id', user.id).order('created_at', { ascending: false });
-        if (error) { showErrorToast('Erro ao carregar seus projetos.'); return; }
+        
+        if (error) {
+            showErrorToast('Erro ao carregar seus projetos.');
+            projectsListDiv.innerHTML = '<p class="text-red-500">Não foi possível carregar os projetos.</p>';
+            return;
+        }
+
         projectsListDiv.innerHTML = '';
         if (projects.length === 0) {
             projectsListDiv.innerHTML = '<div class="card p-4 text-center"><p>Você ainda não solicitou nenhum projeto.</p></div>';
@@ -94,6 +101,7 @@ export async function initDashboard() {
                 projectsListDiv.appendChild(projectCard);
             });
         }
+        
         if (count >= 5) {
             createProjectSection.classList.add('hidden');
             limitWarningSection.classList.remove('hidden');
@@ -118,43 +126,47 @@ export async function initDashboard() {
             await renderProjects();
         }
         submitButton.disabled = false;
-        submitButton.textContent = 'Enviar Solicitação de Projeto';
+        submitButton.textContent = 'Enviar Solicitação';
     });
 
     // --- LÓGICA DE PERFIL ---
+    const profileInputs = [usernameInput, fullNameInput, websiteInput];
     async function loadProfile() {
         emailDisplay.value = user.email;
-        const { data: profile, error } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+        const { data: profile, error } = await supabase.from('profiles').select('username, full_name, website').eq('id', user.id).single();
         if (error && error.code !== 'PGRST116') {
-            console.error('Erro ao buscar perfil:', error);
             showErrorToast('Não foi possível carregar seu perfil.');
             return;
         }
         if (profile) {
             usernameInput.value = profile.username || '';
+            fullNameInput.value = profile.full_name || '';
+            websiteInput.value = profile.website || '';
             welcomeMessage.textContent = `Bem-vindo(a), ${profile.username || user.email}!`;
+        } else {
+            welcomeMessage.textContent = `Bem-vindo(a), ${user.email}!`;
         }
     }
     function toggleEditMode(isEditing) {
-        usernameInput.disabled = !isEditing;
+        profileInputs.forEach(input => input.disabled = !isEditing);
         editButton.classList.toggle('hidden', isEditing);
         saveButton.classList.toggle('hidden', !isEditing);
+        statusMessage.textContent = isEditing ? 'Você pode editar seus dados.' : '';
     }
     editButton.addEventListener('click', () => toggleEditMode(true));
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        saveButton.disabled = true;
-        saveButton.textContent = 'Salvando...';
-        const { error } = await supabase.from('profiles').upsert({ id: user.id, username: usernameInput.value, updated_at: new Date() });
+        saveButton.disabled = true; saveButton.textContent = 'Salvando...';
+        const updates = { id: user.id, username: usernameInput.value, full_name: fullNameInput.value, website: websiteInput.value, updated_at: new Date() };
+        const { error } = await supabase.from('profiles').upsert(updates);
         if (error) {
             showErrorToast('Erro ao salvar o perfil.');
         } else {
             showSuccessToast('Perfil salvo com sucesso!');
-            welcomeMessage.textContent = `Bem-vindo(a), ${usernameInput.value || user.email}!`;
+            welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`;
             toggleEditMode(false);
         }
-        saveButton.disabled = false;
-        saveButton.textContent = 'Salvar Alterações';
+        saveButton.disabled = false; saveButton.textContent = 'Salvar Alterações';
     });
     logoutButton.addEventListener('click', async () => {
         await supabase.auth.signOut();
