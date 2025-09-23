@@ -1,98 +1,4 @@
 import { showSuccessToast, showErrorToast } from './notifications.js';
-
-import DOMPurify from 'dompurify';
-
-function initContactForm() {
-    const contactForm = document.getElementById('contact-form');
-    if (!contactForm) return;
-
-    const emailInput = contactForm.querySelector('#email');
-    const submitButton = contactForm.querySelector('#submit-button');
-    const formStatus = document.getElementById('form-status');
-
-    let isEmailVerified = false;
-    let originalButtonText = 'Enviar Mensagem';
-
-    emailInput.addEventListener('input', () => {
-        isEmailVerified = false;
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalButtonText;
-    });
-
-    emailInput.addEventListener('blur', async () => {
-        const email = emailInput.value;
-        if (email.length < 5 || !email.includes('@')) {
-            return;
-        }
-
-        submitButton.disabled = true;
-        submitButton.innerHTML = 'Verificando e-mail...';
-
-        try {
-            const response = await fetch('/api/verify-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
-            const result = await response.json();
-
-            isEmailVerified = result.isValid;
-
-            if (result.isValid) {
-                showSuccessToast('E-mail parece ser válido!');
-                submitButton.disabled = false;
-                submitButton.innerHTML = originalButtonText;
-            } else {
-                showErrorToast(result.message || 'Este e-mail não parece ser válido.');
-                submitButton.innerHTML = 'E-mail Inválido';
-            }
-        } catch (error) {
-            console.error('Erro ao verificar e-mail:', error);
-            isEmailVerified = true;
-            submitButton.disabled = false;
-            submitButton.innerHTML = originalButtonText;
-        }
-    });
-    
-    contactForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); 
-        
-        if (!isEmailVerified) {
-            showErrorToast('Por favor, utilize um e-mail válido. A verificação falhou ou não foi concluída.');
-            return;
-        }
-        
-        submitButton.disabled = true;
-        submitButton.innerHTML = 'Enviando...';
-        formStatus.innerHTML = '';
-
-        const formData = new FormData(contactForm);
-        const data = Object.fromEntries(formData.entries());
-
-        try {
-            const response = await fetch('/api/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Ocorreu um erro no servidor.');
-            }
-            showSuccessToast(result.message);
-            contactForm.reset();
-            isEmailVerified = false;
-        } catch (error) {
-            showErrorToast(error.message);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.innerHTML = originalButtonText;
-        }
-    });
-}
-
-import { showSuccessToast, showErrorToast } from './notifications.js';
 import DOMPurify from 'dompurify';
 
 function initContactForm() {
@@ -280,7 +186,6 @@ function initAIChatWidget() {
         await getAiResponse();
     });
 
-    // --- LÓGICA DA FASE 2 ---
     messagesContainer.addEventListener('click', (e) => {
         if (e.target.id === 'iniciar-projeto-btn') {
             const userIdea = conversationHistory.find(msg => msg.role === 'user' && msg.parts[0].text !== systemPrompt)?.parts[0].text;
@@ -292,14 +197,8 @@ function initAIChatWidget() {
             }
 
             const projectSummary = `Ideia Original do Cliente:\n${userIdea}\n\n---\nHistórico da Conversa com a IA:\n${aiResponse}`;
-            
             sessionStorage.setItem('pendingProjectDescription', projectSummary);
-            
-            showSuccessToast("Ótimo! Vamos para o próximo passo...");
-            
-            setTimeout(() => {
-                window.location.href = '/login.html';
-            }, 1500);
+            window.location.href = '/login.html';
         }
     });
 }
