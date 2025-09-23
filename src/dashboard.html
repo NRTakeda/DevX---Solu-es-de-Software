@@ -7,7 +7,9 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="antialiased overflow-hidden"> <div id="header-placeholder"></div>
+<body class="antialiased overflow-hidden">
+
+    <div id="header-placeholder"></div>
 
     <div id="dashboard-container"> 
         <div class="flex">
@@ -31,7 +33,7 @@
                     <div id="sidebar-pin-container" class="absolute bottom-5 left-0 w-full px-3">
                         <button id="sidebar-pin-btn" class="w-full flex items-center p-3 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 group" aria-label="Fixar menu">
                             <svg class="w-6 h-6 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                            <span class="nav-link-text ml-3 whitespace-nowrap">Fixar Menu</span>
+                             <span class="nav-link-text ml-3 whitespace-nowrap">Fixar Menu</span>
                         </button>
                     </div>
                 </div>
@@ -39,10 +41,57 @@
 
             <main id="main-content" class="p-8 overflow-y-auto h-screen" style="padding-top: 120px;">
                 <h2 id="welcome-message" class="text-3xl font-bold mb-8">Carregando...</h2>
+
                 <div id="content-projects">
-                    </div>
+                    <section id="meus-projetos" class="mb-12">
+                        <h3 class="text-2xl font-semibold mb-4">Meus Projetos</h3>
+                        <div id="projects-list" class="space-y-4">
+                            <p>Carregando seus projetos...</p>
+                        </div>
+                    </section>
+                    <section id="criar-projeto" class="hidden">
+                        <h3 class="text-2xl font-semibold mb-4">Solicitar Novo Projeto</h3>
+                        <div class="card p-8">
+                            <form id="create-project-form">
+                                <div class="mb-4">
+                                    <label for="project-description" class="block mb-2 text-sm font-semibold">Descreva sua ideia</label>
+                                    <textarea id="project-description" rows="5" required placeholder="Ex: Preciso de um e-commerce para minha loja de roupas..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-full">Enviar Solicitação</button>
+                            </form>
+                        </div>
+                    </section>
+                    <section id="limite-projetos-aviso" class="hidden">
+                        <div class="card p-8 text-center bg-yellow-50 dark:bg-yellow-900/20">
+                            <h3 class="text-xl font-semibold">Limite de projetos atingido</h3>
+                            <p class="mt-2">Você já tem 5 projetos solicitados.</p>
+                        </div>
+                    </section>
+                </div>
+
                 <div id="content-profile" class="hidden">
-                    </div>
+                    <section class="w-full max-w-2xl mx-auto">
+                        <div class="p-8 card">
+                            <h3 class="text-2xl font-bold mb-6 text-center">Gerenciar Perfil</h3>
+                            <form id="profile-form" class="space-y-4 text-left">
+                                <div>
+                                    <label for="email-display" class="block mb-2 text-sm font-semibold">Email</label>
+                                    <input type="email" id="email-display" class="opacity-70" disabled />
+                                </div>
+                                <div>
+                                    <label for="username-input" class="block mb-2 text-sm font-semibold">Nome de Usuário</label>
+                                    <input type="text" id="username-input" disabled />
+                                </div>
+                                <div id="form-status-message" class="h-6 text-center text-sm"></div>
+                                <div class="flex justify-end items-center gap-4 pt-4">
+                                    <button type="button" id="edit-button" class="btn btn-primary">Editar</button>
+                                    <button type="submit" id="save-button" class="btn btn-primary hidden">Salvar Alterações</button>
+                                    <button type="button" id="logout-button" class="btn bg-red-600 hover:bg-red-700 text-white">Sair</button>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+                </div>
             </main>
         </div>
     </div>
