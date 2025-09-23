@@ -1,17 +1,11 @@
 import { supabase } from '../supabaseClient.js';
 import { showSuccessToast, showErrorToast } from './notifications.js';
 
-/**
- * Cria um novo projeto no Supabase a partir dos dados salvos no sessionStorage (vindo da IA).
- * @param {string} description - O resumo da conversa com a IA.
- * @param {string} userId - O ID do usuário autenticado.
- */
 async function createPendingProject(description, userId) {
     showSuccessToast("Finalizando a criação do seu projeto a partir da sua ideia...");
     const { error } = await supabase.from('projects').insert({
         description: description,
         client_id: userId,
-        // O banco de dados já tem valores padrão para 'name' e 'status', definidos via SQL.
     });
 
     if (error) {
@@ -20,17 +14,11 @@ async function createPendingProject(description, userId) {
     } else {
         showSuccessToast('Seu novo projeto foi criado com sucesso!');
     }
-
-    // Limpa a ideia pendente do sessionStorage para não ser criada novamente.
     sessionStorage.removeItem('pendingProjectDescription');
 }
 
-
-/**
- * Função principal que inicializa toda a funcionalidade da página do Dashboard.
- */
 export async function initDashboard() {
-    // Garante que o código só execute na página do dashboard, procurando um elemento único dela.
+    // Garante que o código só execute na página do dashboard.
     if (!document.getElementById('dashboard-sidebar')) return;
 
     // --- AUTENTICAÇÃO E VERIFICAÇÃO DE PROJETO PENDENTE ---
@@ -40,14 +28,12 @@ export async function initDashboard() {
         return;
     }
 
-    // Verifica se há um projeto vindo da conversa com a IA e o cria.
     const pendingDescription = sessionStorage.getItem('pendingProjectDescription');
     if (pendingDescription) {
         await createPendingProject(pendingDescription, user.id);
     }
     
     // --- MAPEAMENTO DOS ELEMENTOS DO DOM ---
-    // Mapeamos todos os elementos que vamos manipular para fácil acesso.
     const sidebar = document.getElementById('dashboard-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -73,12 +59,9 @@ export async function initDashboard() {
     
     // --- LÓGICA DA SIDEBAR RESPONSIVA ---
     const toggleSidebar = () => {
-        // Alterna a classe que move a sidebar para fora da tela no mobile.
         sidebar.classList.toggle('-translate-x-full');
-        // Mostra ou esconde o fundo escuro (overlay).
         sidebarOverlay.classList.toggle('hidden');
     }
-    // Adiciona o evento de clique tanto no botão hambúrguer quanto no overlay.
     sidebarToggleBtn.addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
 
@@ -98,7 +81,6 @@ export async function initDashboard() {
     async function renderProjects() {
         const { data: projects, error, count } = await supabase.from('projects').select('*', { count: 'exact' }).eq('client_id', user.id).order('created_at', { ascending: false });
         if (error) { showErrorToast('Erro ao carregar projetos.'); return; }
-        
         projectsListDiv.innerHTML = '';
         if (projects.length === 0) {
             projectsListDiv.innerHTML = '<div class="card p-4 text-center"><p>Você ainda não solicitou nenhum projeto.</p></div>';
@@ -116,7 +98,6 @@ export async function initDashboard() {
                 projectsListDiv.appendChild(projectCard);
             });
         }
-        // Controla a exibição do formulário de criação vs. o aviso de limite.
         if (count >= 5) {
             createProjectSection.classList.add('hidden');
             limitWarningSection.classList.remove('hidden');
@@ -129,19 +110,12 @@ export async function initDashboard() {
         e.preventDefault();
         const description = descriptionTextarea.value;
         if (description.length < 20) { showErrorToast('Por favor, descreva sua ideia com mais detalhes.'); return; }
-        
         const submitButton = createProjectForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Enviando...';
-        
         const { error } = await supabase.from('projects').insert({ description: description, client_id: user.id });
-        if (error) { 
-            showErrorToast('Erro ao enviar sua solicitação.'); 
-        } else { 
-            showSuccessToast('Solicitação de projeto enviada com sucesso!'); 
-            descriptionTextarea.value = ''; 
-            await renderProjects(); // Atualiza a lista na tela
-        }
+        if (error) { showErrorToast('Erro ao enviar sua solicitação.'); }
+        else { showSuccessToast('Solicitação de projeto enviada com sucesso!'); descriptionTextarea.value = ''; await renderProjects(); }
         submitButton.disabled = false;
         submitButton.textContent = 'Enviar Solicitação';
     });
@@ -169,29 +143,17 @@ export async function initDashboard() {
     editButton.addEventListener('click', () => toggleEditMode(true));
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        saveButton.disabled = true; 
-        saveButton.textContent = 'Salvando...';
+        saveButton.disabled = true; saveButton.textContent = 'Salvando...';
         const updates = { id: user.id, username: usernameInput.value, full_name: fullNameInput.value, website: websiteInput.value, updated_at: new Date() };
         const { error } = await supabase.from('profiles').upsert(updates);
-        if (error) { 
-            showErrorToast('Erro ao salvar o perfil.'); 
-        } else { 
-            showSuccessToast('Perfil salvo com sucesso!'); 
-            welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`; 
-            toggleEditMode(false); 
-        }
-        saveButton.disabled = false; 
-        saveButton.textContent = 'Salvar Alterações';
+        if (error) { showErrorToast('Erro ao salvar o perfil.'); }
+        else { showSuccessToast('Perfil salvo com sucesso!'); welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`; toggleEditMode(false); }
+        saveButton.disabled = false; saveButton.textContent = 'Salvar Alterações';
     });
-    logoutButton.addEventListener('click', async () => { 
-        await supabase.auth.signOut(); 
-        window.location.href = '/login.html'; 
-    });
+    logoutButton.addEventListener('click', async () => { await supabase.auth.signOut(); window.location.href = '/login.html'; });
 
     // --- INICIALIZAÇÃO DA PÁGINA ---
-    // Carrega os dados de projetos e perfil em paralelo para maior performance.
     await Promise.all([renderProjects(), loadProfile()]);
-    // Define a aba "Projetos" como a visualização inicial.
     setActiveLink(navLinkProjects);
     showContent(contentProjects);
 }
