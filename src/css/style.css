@@ -397,3 +397,59 @@ html.dark .chat-window {
     color: var(--color-text-primary);
     font-weight: 600;
 }
+
+/* Estilos para os botões */
+.edit-btn, .reject-btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.edit-btn:hover {
+    color: #0369a1;
+}
+
+.reject-btn:hover {
+    color: #dc2626;
+}
+
+/* Loading state */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Estilos específicos para o modal de rejeição */
+#reject-modal textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+#reject-modal .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Loading spinner para o botão de rejeição */
+.btn-loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-right-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
