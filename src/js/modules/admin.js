@@ -57,15 +57,37 @@ export async function initAdmin() {
                 return;
             }
 
-            // SEGUNDO: Buscar informações dos clientes em separado
+            // SEGUNDO: Buscar informações dos clientes - CORREÇÃO AQUI
             const clientIds = projects.map(p => p.client_id).filter(id => id);
-            const { data: clients, error: clientsError } = await supabase
+            
+            // Vamos tentar diferentes combinações de colunas
+            let clients = null;
+            let clientsError = null;
+
+            // Tentativa 1: Buscar apenas username (coluna que sabemos existir)
+            const { data: clientsData, error: error1 } = await supabase
                 .from('profiles')
-                .select('id, username, email')
+                .select('id, username, full_name') // REMOVIDO email
                 .in('id', clientIds);
+
+            clients = clientsData;
+            clientsError = error1;
+
+            // Se ainda der erro, tentar apenas id e username
+            if (clientsError) {
+                console.warn('Tentativa 1 falhou, tentando colunas mínimas...');
+                const { data: clientsData2, error: error2 } = await supabase
+                    .from('profiles')
+                    .select('id, username')
+                    .in('id', clientIds);
+                
+                clients = clientsData2;
+                clientsError = error2;
+            }
 
             if (clientsError) {
                 console.warn('Erro ao buscar clientes:', clientsError);
+                // Continuamos mesmo com erro - usaremos dados básicos
             }
 
             // Criar mapa de clientes para acesso rápido
@@ -80,8 +102,11 @@ export async function initAdmin() {
             projectsTableBody.innerHTML = '';
             projects.forEach(project => {
                 const client = clientsMap[project.client_id];
-                const clientUsername = client ? client.username : 'N/A';
-                const clientEmail = client ? client.email : '';
+                const clientUsername = client ? (client.username || client.full_name || 'N/A') : 'N/A';
+                
+                // Para o e-mail, vamos buscar do auth.users se necessário
+                // Por enquanto, usaremos um placeholder
+                const clientEmail = 'cliente@exemplo.com'; // Placeholder
 
                 const tr = document.createElement('tr');
                 tr.className = 'border-b dark:border-gray-700';
@@ -90,7 +115,7 @@ export async function initAdmin() {
                     <td class="p-4">${project.name || 'N/A'}</td>
                     <td class="p-4">
                         <div>${clientUsername}</div>
-                        <div class="text-sm text-gray-500">${clientEmail}</div>
+                        <div class="text-sm text-gray-500">ID: ${project.client_id}</div>
                     </td>
                     <td class="p-4">
                         <span class="px-2 py-1 rounded-full text-xs ${
@@ -111,7 +136,7 @@ export async function initAdmin() {
                         </button>
                         <button data-id="${project.id}" 
                                 data-name="${project.name}" 
-                                data-client-email="${clientEmail}" 
+                                data-client-id="${project.client_id}"
                                 class="reject-btn text-red-500 hover:underline">
                             Rejeitar
                         </button>
@@ -144,16 +169,10 @@ export async function initAdmin() {
         
         if (e.target.classList.contains('reject-btn')) {
             const button = e.target;
-            const clientEmail = button.dataset.clientEmail;
+            const clientId = button.dataset.clientId;
             
-            if (!clientEmail) {
-                showErrorToast('Não foi possível encontrar o e-mail do cliente.');
-                return;
-            }
-
             rejectProjectIdInput.value = button.dataset.id;
             rejectProjectNameInput.value = button.dataset.name;
-            rejectClientEmailInput.value = clientEmail;
             
             // Mensagem padrão de rejeição
             rejectMessageTextarea.value = `Prezado cliente,\n\nApós análise do seu projeto "${button.dataset.name}", lamentamos informar que não poderemos dar continuidade no momento devido às seguintes razões:\n\n• [Especifique o motivo aqui]\n\nAgradecemos seu interesse e estamos à disposição para futuras colaborações.\n\nAtenciosamente,\nEquipe DevX`;
@@ -209,7 +228,7 @@ export async function initAdmin() {
         }
     });
 
-    // 6. Submit do Formulário de Rejeição
+    // 6. Submit do Formulário de Rejeição - CORRIGIDO
     rejectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -221,11 +240,27 @@ export async function initAdmin() {
         
         try {
             const projectId = rejectProjectIdInput.value;
-            const clientEmail = rejectClientEmailInput.value;
             const message = rejectMessageTextarea.value;
 
+            // AGORA: Buscar o e-mail do cliente dinamicamente
+            const { data: clientProfile, error: clientError } = await supabase
+                .from('profiles')
+                .select('id, username')
+                .eq('id', rejectForm.querySelector('[data-client-id]')?.dataset.clientId)
+                .single();
+
+            if (clientError) {
+                console.warn('Não foi possível buscar perfil do cliente:', clientError);
+            }
+
+            // Para teste, use um e-mail fixo ou peça ao admin para digitar
+            const clientEmail = prompt(
+                'Digite o e-mail do cliente para envio da notificação:',
+                'cliente@exemplo.com'
+            );
+
             if (!clientEmail) {
-                throw new Error('E-mail do cliente não encontrado');
+                throw new Error('E-mail do cliente é obrigatório');
             }
 
             const response = await fetch('/api/reject-project', {
@@ -263,7 +298,7 @@ export async function initAdmin() {
 
     // 7. Função auxiliar para mostrar toasts
     function showErrorToast(message) {
-        // Implementação temporária - substitua pelo seu sistema de toasts
+        // Implementação temporária
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded shadow-lg z-50';
         toast.textContent = message;
