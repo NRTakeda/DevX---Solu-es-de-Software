@@ -3,37 +3,22 @@ import { showSuccessToast, showErrorToast } from './notifications.js';
 
 async function createPendingProject(description, userId) {
     showSuccessToast("Finalizando a criação do seu projeto a partir da sua ideia...");
-    const { error } = await supabase.from('projects').insert({
-        description: description,
-        client_id: userId,
-    });
-
-    if (error) {
-        showErrorToast('Erro ao criar seu projeto pendente.');
-        console.error(error);
-    } else {
-        showSuccessToast('Seu novo projeto foi criado com sucesso!');
-    }
+    const { error } = await supabase.from('projects').insert({ description: description, client_id: userId });
+    if (error) { showErrorToast('Erro ao criar seu projeto pendente.'); console.error(error); }
+    else { showSuccessToast('Seu novo projeto foi criado com sucesso!'); }
     sessionStorage.removeItem('pendingProjectDescription');
 }
 
 export async function initDashboard() {
-    // Garante que o código só execute na página do dashboard.
     if (!document.getElementById('dashboard-sidebar')) return;
 
-    // --- AUTENTICAÇÃO E VERIFICAÇÃO DE PROJETO PENDENTE ---
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        window.location.href = '/login.html';
-        return;
-    }
+    if (!user) { window.location.href = '/login.html'; return; }
 
     const pendingDescription = sessionStorage.getItem('pendingProjectDescription');
-    if (pendingDescription) {
-        await createPendingProject(pendingDescription, user.id);
-    }
+    if (pendingDescription) { await createPendingProject(pendingDescription, user.id); }
     
-    // --- MAPEAMENTO DOS ELEMENTOS DO DOM ---
+    // --- MAPEAMENTO DOS ELEMENTOS ---
     const sidebar = document.getElementById('dashboard-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -65,7 +50,7 @@ export async function initDashboard() {
     sidebarToggleBtn.addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
 
-    // --- LÓGICA DE NAVEGAÇÃO INTERNA (PROJETOS / PERFIL) ---
+    // --- LÓGICA DE NAVEGAÇÃO INTERNA ---
     function showContent(contentToShow) {
         [contentProjects, contentProfile].forEach(c => c.classList.add('hidden'));
         contentToShow.classList.remove('hidden');
@@ -87,13 +72,18 @@ export async function initDashboard() {
         } else {
             projects.forEach(project => {
                 const projectCard = document.createElement('div');
-                projectCard.className = 'card p-4 flex justify-between items-center flex-wrap gap-2';
+                projectCard.className = 'card p-4 flex justify-between items-center flex-wrap gap-4';
                 projectCard.innerHTML = `
                     <div class="flex-grow">
                         <h4 class="font-bold">${project.name}</h4>
                         <p class="text-sm text-gray-500">${(project.description || 'Sem descrição.').substring(0, 80)}...</p>
                     </div>
-                    <span class="font-semibold text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">${project.status}</span>
+                    <div class="flex items-center gap-4 flex-shrink-0">
+                        <span class="font-semibold text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">${project.status}</span>
+                        <button data-id="${project.id}" class="delete-project-btn text-red-500 hover:text-red-700 dark:hover:text-red-400 p-2 rounded-full" aria-label="Excluir projeto">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
                 `;
                 projectsListDiv.appendChild(projectCard);
             });
@@ -120,6 +110,30 @@ export async function initDashboard() {
         submitButton.textContent = 'Enviar Solicitação';
     });
 
+    // --- NOVA LÓGICA DE EXCLUSÃO DE PROJETO ---
+    projectsListDiv.addEventListener('click', async (e) => {
+        const deleteButton = e.target.closest('.delete-project-btn');
+        if (deleteButton) {
+            const projectId = deleteButton.dataset.id;
+            const userConfirmation = window.confirm("Você tem certeza que deseja excluir esta solicitação de projeto? Esta ação não pode ser desfeita.");
+
+            if (userConfirmation) {
+                const { error } = await supabase
+                    .from('projects')
+                    .delete()
+                    .eq('id', projectId);
+
+                if (error) {
+                    showErrorToast("Erro ao excluir o projeto. Tente novamente.");
+                    console.error("Erro de exclusão:", error);
+                } else {
+                    showSuccessToast("Projeto excluído com sucesso.");
+                    await renderProjects(); // Atualiza a lista na tela
+                }
+            }
+        }
+    });
+
     // --- LÓGICA DE PERFIL ---
     const profileInputs = [usernameInput, fullNameInput, websiteInput];
     async function loadProfile() {
@@ -138,7 +152,6 @@ export async function initDashboard() {
         profileInputs.forEach(input => input.disabled = !isEditing);
         editButton.classList.toggle('hidden', isEditing);
         saveButton.classList.toggle('hidden', !isEditing);
-        statusMessage.textContent = isEditing ? 'Você pode editar seus dados.' : '';
     }
     editButton.addEventListener('click', () => toggleEditMode(true));
     profileForm.addEventListener('submit', async (e) => {
