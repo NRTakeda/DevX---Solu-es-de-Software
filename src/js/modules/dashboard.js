@@ -9,6 +9,36 @@ async function createPendingProject(description, userId) {
     sessionStorage.removeItem('pendingProjectDescription');
 }
 
+// Função para criar o modal de edição
+function createEditProjectModal() {
+    const modalHTML = `
+        <div id="edit-project-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                <h3 class="text-xl font-semibold mb-4 dark:text-white">Editar Projeto</h3>
+                <form id="edit-project-form">
+                    <input type="hidden" id="edit-project-id">
+                    <div class="mb-4">
+                        <label for="edit-project-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nome do Projeto</label>
+                        <input type="text" id="edit-project-name" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-project-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Descrição</label>
+                        <textarea id="edit-project-description" rows="4" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-edit-project" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    return document.getElementById('edit-project-modal');
+}
+
 export async function initDashboard() {
     if (!document.getElementById('dashboard-sidebar')) return;
 
@@ -42,6 +72,11 @@ export async function initDashboard() {
     const logoutButton = document.getElementById('logout-button');
     const statusMessage = document.getElementById('form-status-message');
     
+    // --- CRIAR MODAL DE EDIÇÃO ---
+    const editModal = createEditProjectModal();
+    const editForm = document.getElementById('edit-project-form');
+    const cancelEditBtn = document.getElementById('cancel-edit-project');
+
     // --- LÓGICA DA SIDEBAR RESPONSIVA ---
     const toggleSidebar = () => {
         sidebar.classList.toggle('-translate-x-full');
@@ -62,32 +97,74 @@ export async function initDashboard() {
     navLinkProjects.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProjects); showContent(contentProjects); });
     navLinkProfile.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProfile); showContent(contentProfile); });
 
-    // --- LÓGICA DE PROJETOS ---
+    // --- LÓGICA DE PROJETOS - ATUALIZADA COM EDIÇÃO ---
     async function renderProjects() {
-        const { data: projects, error, count } = await supabase.from('projects').select('*', { count: 'exact' }).eq('client_id', user.id).order('created_at', { ascending: false });
-        if (error) { showErrorToast('Erro ao carregar projetos.'); return; }
+        const { data: projects, error, count } = await supabase 
+            .from('projects')
+            .select('*', { count: 'exact' })
+            .eq('client_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (error) { 
+            showErrorToast('Erro ao carregar projetos.'); 
+            return; 
+        }
+
         projectsListDiv.innerHTML = '';
+
         if (projects.length === 0) {
-            projectsListDiv.innerHTML = '<div class="card p-4 text-center"><p>Você ainda não solicitou nenhum projeto.</p></div>';
+            projectsListDiv.innerHTML = `
+                <div class="card p-8 text-center">
+                    <h3 class="text-xl font-semibold mb-2">Nenhum projeto encontrado</h3>
+                    <p class="text-gray-600">Você ainda não solicitou nenhum projeto.</p>
+                </div>
+            `;
         } else {
             projects.forEach(project => {
                 const projectCard = document.createElement('div');
-                projectCard.className = 'card p-4 flex justify-between items-center flex-wrap gap-4';
+                projectCard.className = 'card p-6';
                 projectCard.innerHTML = `
-                    <div class="flex-grow">
-                        <h4 class="font-bold">${project.name}</h4>
-                        <p class="text-sm text-gray-500">${(project.description || 'Sem descrição.').substring(0, 80)}...</p>
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex-grow">
+                            <h3 class="text-xl font-semibold project-name">${project.name || 'Projeto Sem Nome'}</h3>
+                            <p class="text-gray-500 text-sm">Criado em: ${new Date(project.created_at).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium ${
+                            project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' :
+                            project.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
+                            project.status === 'Rejeitado' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                        }">${project.status}</span>
                     </div>
-                    <div class="flex items-center gap-4 flex-shrink-0">
-                        <span class="font-semibold text-sm px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">${project.status}</span>
-                        <button data-id="${project.id}" class="delete-project-btn text-red-500 hover:text-red-700 dark:hover:text-red-400 p-2 rounded-full" aria-label="Excluir projeto">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                    
+                    <div class="mb-4">
+                        <p class="text-gray-700 project-description">${project.description || 'Sem descrição'}</p>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            ID: ${project.id.substring(0, 8)}...
+                        </div>
+                        <div class="space-x-2">
+                            <button class="edit-project-btn text-blue-600 hover:text-blue-800 text-sm font-medium" 
+                                    data-id="${project.id}"
+                                    data-name="${project.name || ''}"
+                                    data-description="${project.description || ''}">
+                                Editar
+                            </button>
+                            <button data-id="${project.id}" class="delete-project-btn text-red-500 hover:text-red-700 p-2 rounded-full" aria-label="Excluir projeto">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 `;
                 projectsListDiv.appendChild(projectCard);
             });
         }
+
+        // Controle de limite de projetos
         if (count >= 5) {
             createProjectSection.classList.add('hidden');
             limitWarningSection.classList.remove('hidden');
@@ -96,22 +173,56 @@ export async function initDashboard() {
             limitWarningSection.classList.add('hidden');
         }
     }
+
+    // --- LÓGICA DE CRIAÇÃO DE PROJETO ---
     createProjectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const description = descriptionTextarea.value;
-        if (description.length < 20) { showErrorToast('Por favor, descreva sua ideia com mais detalhes.'); return; }
+        
+        if (description.length < 20) { 
+            showErrorToast('Por favor, descreva sua ideia com mais detalhes (mínimo 20 caracteres).'); 
+            return; 
+        }
+
         const submitButton = createProjectForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Enviando...';
-        const { error } = await supabase.from('projects').insert({ description: description, client_id: user.id });
-        if (error) { showErrorToast('Erro ao enviar sua solicitação.'); }
-        else { showSuccessToast('Solicitação de projeto enviada com sucesso!'); descriptionTextarea.value = ''; await renderProjects(); }
+
+        const { error } = await supabase.from('projects').insert({ 
+            description: description, 
+            client_id: user.id 
+        });
+
+        if (error) { 
+            showErrorToast('Erro ao enviar sua solicitação.'); 
+        } else { 
+            showSuccessToast('Solicitação de projeto enviada com sucesso!'); 
+            descriptionTextarea.value = ''; 
+            await renderProjects(); 
+        }
+
         submitButton.disabled = false;
         submitButton.textContent = 'Enviar Solicitação';
     });
 
-    // --- NOVA LÓGICA DE EXCLUSÃO DE PROJETO ---
-    projectsListDiv.addEventListener('click', async (e) => {
+    // --- LÓGICA DE EDIÇÃO DE PROJETO ---
+    document.addEventListener('click', async (e) => {
+        // Botão de editar projeto
+        if (e.target.classList.contains('edit-project-btn')) {
+            const projectId = e.target.dataset.id;
+            const projectName = e.target.dataset.name || '';
+            const projectDescription = e.target.dataset.description || '';
+
+            // Preencher modal com dados atuais
+            document.getElementById('edit-project-id').value = projectId;
+            document.getElementById('edit-project-name').value = projectName;
+            document.getElementById('edit-project-description').value = projectDescription;
+            
+            // Mostrar modal
+            editModal.classList.remove('hidden');
+        }
+
+        // Botão de excluir projeto
         const deleteButton = e.target.closest('.delete-project-btn');
         if (deleteButton) {
             const projectId = deleteButton.dataset.id;
@@ -121,24 +232,69 @@ export async function initDashboard() {
                 const { error } = await supabase
                     .from('projects')
                     .delete()
-                    .eq('id', projectId);
+                    .eq('id', projectId)
+                    .eq('client_id', user.id); // Segurança: só deleta próprios projetos
 
                 if (error) {
                     showErrorToast("Erro ao excluir o projeto. Tente novamente.");
                     console.error("Erro de exclusão:", error);
                 } else {
                     showSuccessToast("Projeto excluído com sucesso.");
-                    await renderProjects(); // Atualiza a lista na tela
+                    await renderProjects();
                 }
             }
         }
     });
 
+    // --- LÓGICA DO MODAL DE EDIÇÃO ---
+    cancelEditBtn.addEventListener('click', () => {
+        editModal.classList.add('hidden');
+    });
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const projectId = document.getElementById('edit-project-id').value;
+        const name = document.getElementById('edit-project-name').value;
+        const description = document.getElementById('edit-project-description').value;
+        
+        const submitButton = editForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Salvando...';
+
+        try {
+            const { error } = await supabase
+                .from('projects')
+                .update({ 
+                    name: name,
+                    description: description,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', projectId)
+                .eq('client_id', user.id); // Segurança: garantir que é dono do projeto
+
+            if (error) throw error;
+            
+            showSuccessToast('Projeto atualizado com sucesso!');
+            editModal.classList.add('hidden');
+            await renderProjects(); // Recarregar a lista
+            
+        } catch (error) {
+            console.error('Erro ao atualizar projeto:', error);
+            showErrorToast('Erro ao atualizar projeto: ' + error.message);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Salvar';
+        }
+    });
+
     // --- LÓGICA DE PERFIL ---
     const profileInputs = [usernameInput, fullNameInput, websiteInput];
+    
     async function loadProfile() {
         emailDisplay.value = user.email;
         const { data: profile } = await supabase.from('profiles').select('username, full_name, website').eq('id', user.id).single();
+        
         if (profile) {
             usernameInput.value = profile.username || '';
             fullNameInput.value = profile.full_name || '';
@@ -148,22 +304,46 @@ export async function initDashboard() {
             welcomeMessage.textContent = `Bem-vindo(a), ${user.email}!`;
         }
     }
+
     function toggleEditMode(isEditing) {
         profileInputs.forEach(input => input.disabled = !isEditing);
         editButton.classList.toggle('hidden', isEditing);
         saveButton.classList.toggle('hidden', !isEditing);
     }
+
     editButton.addEventListener('click', () => toggleEditMode(true));
+    
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        saveButton.disabled = true; saveButton.textContent = 'Salvando...';
-        const updates = { id: user.id, username: usernameInput.value, full_name: fullNameInput.value, website: websiteInput.value, updated_at: new Date() };
+        saveButton.disabled = true; 
+        saveButton.textContent = 'Salvando...';
+        
+        const updates = { 
+            id: user.id, 
+            username: usernameInput.value, 
+            full_name: fullNameInput.value, 
+            website: websiteInput.value, 
+            updated_at: new Date() 
+        };
+        
         const { error } = await supabase.from('profiles').upsert(updates);
-        if (error) { showErrorToast('Erro ao salvar o perfil.'); }
-        else { showSuccessToast('Perfil salvo com sucesso!'); welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`; toggleEditMode(false); }
-        saveButton.disabled = false; saveButton.textContent = 'Salvar Alterações';
+        
+        if (error) { 
+            showErrorToast('Erro ao salvar o perfil.'); 
+        } else { 
+            showSuccessToast('Perfil salvo com sucesso!'); 
+            welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`; 
+            toggleEditMode(false); 
+        }
+        
+        saveButton.disabled = false; 
+        saveButton.textContent = 'Salvar Alterações';
     });
-    logoutButton.addEventListener('click', async () => { await supabase.auth.signOut(); window.location.href = '/login.html'; });
+
+    logoutButton.addEventListener('click', async () => { 
+        await supabase.auth.signOut(); 
+        window.location.href = '/login.html'; 
+    });
 
     // --- INICIALIZAÇÃO DA PÁGINA ---
     await Promise.all([renderProjects(), loadProfile()]);
