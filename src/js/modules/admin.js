@@ -23,7 +23,7 @@ export async function initAdmin() {
         return;
     }
 
-    // Elementos dos modais (mantidos do código anterior)
+    // Elementos dos modais
     const editModal = document.getElementById('edit-modal');
     const editForm = document.getElementById('edit-project-form');
     const cancelEditButton = document.getElementById('cancel-edit-button');
@@ -39,66 +39,100 @@ export async function initAdmin() {
     const rejectMessageTextarea = document.getElementById('reject-message');
     const rejectClientEmailInput = document.getElementById('reject-client-email');
 
-    // 2. Função CORRIGIDA para buscar e renderizar projetos
+    // 2. Função CORRIGIDA para buscar projetos
     async function renderProjects() {
-        // QUERY CORRIGIDA - sintaxe correta para relacionamentos
-        const { data: projects, error } = await supabase
-            .from('projects')
-            .select(`
-                id, 
-                name, 
-                status, 
-                client_id,
-                profiles (
-                    username, 
-                    email
-                )
-            `);
+        try {
+            // PRIMEIRO: Buscar apenas os projetos
+            const { data: projects, error: projectsError } = await supabase
+                .from('projects')
+                .select('id, name, status, client_id')
+                .order('created_at', { ascending: false });
 
-        if (error) {
+            if (projectsError) {
+                throw new Error(projectsError.message);
+            }
+
+            if (!projects || projects.length === 0) {
+                projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto encontrado.</td></tr>`;
+                return;
+            }
+
+            // SEGUNDO: Buscar informações dos clientes em separado
+            const clientIds = projects.map(p => p.client_id).filter(id => id);
+            const { data: clients, error: clientsError } = await supabase
+                .from('profiles')
+                .select('id, username, email')
+                .in('id', clientIds);
+
+            if (clientsError) {
+                console.warn('Erro ao buscar clientes:', clientsError);
+            }
+
+            // Criar mapa de clientes para acesso rápido
+            const clientsMap = {};
+            if (clients) {
+                clients.forEach(client => {
+                    clientsMap[client.id] = client;
+                });
+            }
+
+            // TERCEIRO: Renderizar a tabela
+            projectsTableBody.innerHTML = '';
+            projects.forEach(project => {
+                const client = clientsMap[project.client_id];
+                const clientUsername = client ? client.username : 'N/A';
+                const clientEmail = client ? client.email : '';
+
+                const tr = document.createElement('tr');
+                tr.className = 'border-b dark:border-gray-700';
+                
+                tr.innerHTML = `
+                    <td class="p-4">${project.name || 'N/A'}</td>
+                    <td class="p-4">
+                        <div>${clientUsername}</div>
+                        <div class="text-sm text-gray-500">${clientEmail}</div>
+                    </td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded-full text-xs ${
+                            project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' :
+                            project.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
+                            project.status === 'Rejeitado' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                        }">
+                            ${project.status || 'N/A'}
+                        </span>
+                    </td>
+                    <td class="p-4">
+                        <button data-id="${project.id}" 
+                                data-name="${project.name}" 
+                                data-status="${project.status}" 
+                                class="edit-btn text-sky-500 hover:underline mr-3">
+                            Editar
+                        </button>
+                        <button data-id="${project.id}" 
+                                data-name="${project.name}" 
+                                data-client-email="${clientEmail}" 
+                                class="reject-btn text-red-500 hover:underline">
+                            Rejeitar
+                        </button>
+                    </td>
+                `;
+                projectsTableBody.appendChild(tr);
+            });
+
+        } catch (error) {
             console.error('Erro ao buscar projetos:', error);
-            projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Erro ao carregar projetos: ${error.message}</td></tr>`;
-            return;
-        }
-
-        if (!projects || projects.length === 0) {
-            projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto encontrado.</td></tr>`;
-            return;
-        }
-
-        projectsTableBody.innerHTML = '';
-        projects.forEach(project => {
-            const tr = document.createElement('tr');
-            tr.className = 'border-b dark:border-gray-700';
-            
-            // Acesso CORRIGIDO aos dados do perfil
-            const clientUsername = project.profiles ? project.profiles.username : 'N/A';
-            const clientEmail = project.profiles ? project.profiles.email : '';
-
-            tr.innerHTML = `
-                <td class="p-4">${project.name || 'N/A'}</td>
-                <td class="p-4">${clientUsername}</td>
-                <td class="p-4">${project.status || 'N/A'}</td>
-                <td class="p-4">
-                    <button data-id="${project.id}" 
-                            data-name="${project.name}" 
-                            data-status="${project.status}" 
-                            class="edit-btn text-sky-500 hover:underline mr-3">
-                        Editar
-                    </button>
-                    <button data-id="${project.id}" 
-                            data-name="${project.name}" 
-                            data-client-email="${clientEmail}" 
-                            class="reject-btn text-red-500 hover:underline">
-                        Rejeitar
-                    </button>
-                </td>
+            projectsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="p-4 text-center text-red-500">
+                        Erro ao carregar projetos: ${error.message}
+                    </td>
+                </tr>
             `;
-            projectsTableBody.appendChild(tr);
-        });
+        }
     }
 
-    // 3. Lógica de Edição (mantida)
+    // 3. Lógica de Edição
     projectsTableBody.addEventListener('click', (e) => {
         if (e.target.classList.contains('edit-btn')) {
             const button = e.target;
@@ -110,9 +144,16 @@ export async function initAdmin() {
         
         if (e.target.classList.contains('reject-btn')) {
             const button = e.target;
+            const clientEmail = button.dataset.clientEmail;
+            
+            if (!clientEmail) {
+                showErrorToast('Não foi possível encontrar o e-mail do cliente.');
+                return;
+            }
+
             rejectProjectIdInput.value = button.dataset.id;
             rejectProjectNameInput.value = button.dataset.name;
-            rejectClientEmailInput.value = button.dataset.clientEmail;
+            rejectClientEmailInput.value = clientEmail;
             
             // Mensagem padrão de rejeição
             rejectMessageTextarea.value = `Prezado cliente,\n\nApós análise do seu projeto "${button.dataset.name}", lamentamos informar que não poderemos dar continuidade no momento devido às seguintes razões:\n\n• [Especifique o motivo aqui]\n\nAgradecemos seu interesse e estamos à disposição para futuras colaborações.\n\nAtenciosamente,\nEquipe DevX`;
@@ -121,7 +162,7 @@ export async function initAdmin() {
         }
     });
 
-    // 4. Fechar modais (mantido)
+    // 4. Fechar modais
     cancelEditButton.addEventListener('click', () => {
         editModal.classList.add('hidden');
     });
@@ -130,30 +171,45 @@ export async function initAdmin() {
         rejectModal.classList.add('hidden');
     });
 
-    // 5. Submit do Formulário de Edição (mantido)
+    // 5. Submit do Formulário de Edição
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = projectIdInput.value;
-        const updatedData = {
-            name: projectNameInput.value,
-            status: projectStatusInput.value
-        };
+        
+        const submitButton = editForm.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        
+        submitButton.disabled = true;
+        submitButton.textContent = 'Salvando...';
 
-        const { error } = await supabase
-            .from('projects')
-            .update(updatedData)
-            .eq('id', id);
+        try {
+            const id = projectIdInput.value;
+            const updatedData = {
+                name: projectNameInput.value,
+                status: projectStatusInput.value
+            };
 
-        if (error) {
-            showErrorToast('Erro ao atualizar o projeto: ' + error.message);
-        } else {
+            const { error } = await supabase
+                .from('projects')
+                .update(updatedData)
+                .eq('id', id);
+
+            if (error) {
+                throw new Error(error.message);
+            }
+
             showErrorToast('Projeto atualizado com sucesso!');
             editModal.classList.add('hidden');
             await renderProjects();
+
+        } catch (error) {
+            showErrorToast('Erro ao atualizar o projeto: ' + error.message);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
         }
     });
 
-    // 6. Submit do Formulário de Rejeição (NOVO - corrigido)
+    // 6. Submit do Formulário de Rejeição
     rejectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -167,6 +223,10 @@ export async function initAdmin() {
             const projectId = rejectProjectIdInput.value;
             const clientEmail = rejectClientEmailInput.value;
             const message = rejectMessageTextarea.value;
+
+            if (!clientEmail) {
+                throw new Error('E-mail do cliente não encontrado');
+            }
 
             const response = await fetch('/api/reject-project', {
                 method: 'POST',
@@ -201,11 +261,17 @@ export async function initAdmin() {
         }
     });
 
-    // 7. Função auxiliar para mostrar toasts (se não existir)
+    // 7. Função auxiliar para mostrar toasts
     function showErrorToast(message) {
-        // Se você já tem um sistema de toasts, use-o
-        // Caso contrário, implemente um simples:
-        alert(message); // Temporário - substitua por seu sistema de toasts
+        // Implementação temporária - substitua pelo seu sistema de toasts
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded shadow-lg z-50';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 3000);
     }
 
     // Renderiza os projetos ao carregar
