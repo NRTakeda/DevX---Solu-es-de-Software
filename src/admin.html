@@ -1,314 +1,119 @@
-import { supabase } from '../supabaseClient.js';
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | DevX</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="antialiased">
 
-export async function initAdmin() {
-    const projectsTableBody = document.getElementById('projects-table-body');
-    if (!projectsTableBody) return;
+    <div id="header-placeholder"></div>
 
-    // 1. Proteger a página: verificar se o usuário é admin
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        window.location.href = '/login.html';
-        return;
-    }
+    <main class="pt-32 pb-16">
+        <section class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold mb-8">Painel Administrativo de Projetos</h2>
+            <div class="card p-8">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b dark:border-gray-700">
+                                <th class="p-4">Nome do Projeto</th>
+                                <th class="p-4">Cliente (Usuário)</th>
+                                <th class="p-4">Status Atual</th>
+                                <th class="p-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-table-body">
+                            <!-- Conteúdo dinâmico via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+        <!-- Modal de Edição (Existente) -->
+        <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
+            <div class="card p-8 w-full max-w-lg">
+                <h3 class="text-2xl font-bold mb-4">Editar Projeto</h3>
+                <form id="edit-project-form">
+                    <input type="hidden" id="edit-project-id">
+                    <div class="mb-4">
+                        <label for="edit-project-name" class="block mb-2 text-sm font-semibold">Nome do Projeto</label>
+                        <input type="text" id="edit-project-name">
+                    </div>
+                    <div class="mb-4">
+                        <label for="edit-project-status" class="block mb-2 text-sm font-semibold">Status</label>
+                        <input type="text" id="edit-project-status" placeholder="Ex: Em Desenvolvimento">
+                    </div>
+                    <div class="flex justify-end gap-4">
+                        <button type="button" id="cancel-edit-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </section>
 
-    if (profileError || profile.role !== 'admin') {
-        showErrorToast('Acesso negado.');
-        window.location.href = '/dashboard.html';
-        return;
-    }
-
-    // Elementos dos modais
-    const editModal = document.getElementById('edit-modal');
-    const editForm = document.getElementById('edit-project-form');
-    const cancelEditButton = document.getElementById('cancel-edit-button');
-    const projectIdInput = document.getElementById('edit-project-id');
-    const projectNameInput = document.getElementById('edit-project-name');
-    const projectStatusInput = document.getElementById('edit-project-status');
-
-    const rejectModal = document.getElementById('reject-modal');
-    const rejectForm = document.getElementById('reject-project-form');
-    const cancelRejectButton = document.getElementById('cancel-reject-button');
-    const rejectProjectIdInput = document.getElementById('reject-project-id');
-    const rejectProjectNameInput = document.getElementById('reject-project-name');
-    const rejectMessageTextarea = document.getElementById('reject-message');
-    const rejectClientEmailInput = document.getElementById('reject-client-email');
-
-    // 2. Função CORRIGIDA para buscar projetos
-    async function renderProjects() {
-        try {
-            // PRIMEIRO: Buscar apenas os projetos
-            const { data: projects, error: projectsError } = await supabase
-                .from('projects')
-                .select('id, name, status, client_id')
-                .order('created_at', { ascending: false });
-
-            if (projectsError) {
-                throw new Error(projectsError.message);
-            }
-
-            if (!projects || projects.length === 0) {
-                projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto encontrado.</td></tr>`;
-                return;
-            }
-
-            // SEGUNDO: Buscar informações dos clientes - CORREÇÃO AQUI
-            const clientIds = projects.map(p => p.client_id).filter(id => id);
-            
-            // Vamos tentar diferentes combinações de colunas
-            let clients = null;
-            let clientsError = null;
-
-            // Tentativa 1: Buscar apenas username (coluna que sabemos existir)
-            const { data: clientsData, error: error1 } = await supabase
-                .from('profiles')
-                .select('id, username, full_name') // REMOVIDO email
-                .in('id', clientIds);
-
-            clients = clientsData;
-            clientsError = error1;
-
-            // Se ainda der erro, tentar apenas id e username
-            if (clientsError) {
-                console.warn('Tentativa 1 falhou, tentando colunas mínimas...');
-                const { data: clientsData2, error: error2 } = await supabase
-                    .from('profiles')
-                    .select('id, username')
-                    .in('id', clientIds);
-                
-                clients = clientsData2;
-                clientsError = error2;
-            }
-
-            if (clientsError) {
-                console.warn('Erro ao buscar clientes:', clientsError);
-                // Continuamos mesmo com erro - usaremos dados básicos
-            }
-
-            // Criar mapa de clientes para acesso rápido
-            const clientsMap = {};
-            if (clients) {
-                clients.forEach(client => {
-                    clientsMap[client.id] = client;
-                });
-            }
-
-            // TERCEIRO: Renderizar a tabela
-            projectsTableBody.innerHTML = '';
-            projects.forEach(project => {
-                const client = clientsMap[project.client_id];
-                const clientUsername = client ? (client.username || client.full_name || 'N/A') : 'N/A';
-                
-                // Para o e-mail, vamos buscar do auth.users se necessário
-                // Por enquanto, usaremos um placeholder
-                const clientEmail = 'cliente@exemplo.com'; // Placeholder
-
-                const tr = document.createElement('tr');
-                tr.className = 'border-b dark:border-gray-700';
-                
-                tr.innerHTML = `
-                    <td class="p-4">${project.name || 'N/A'}</td>
-                    <td class="p-4">
-                        <div>${clientUsername}</div>
-                        <div class="text-sm text-gray-500">ID: ${project.client_id}</div>
-                    </td>
-                    <td class="p-4">
-                        <span class="px-2 py-1 rounded-full text-xs ${
-                            project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' :
-                            project.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
-                            project.status === 'Rejeitado' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                        }">
-                            ${project.status || 'N/A'}
-                        </span>
-                    </td>
-                    <td class="p-4">
-                        <button data-id="${project.id}" 
-                                data-name="${project.name}" 
-                                data-status="${project.status}" 
-                                class="edit-btn text-sky-500 hover:underline mr-3">
-                            Editar
+        <!-- Novo Modal de Rejeição -->
+        <section id="reject-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
+            <div class="card p-8 w-full max-w-2xl">
+                <h3 class="text-2xl font-bold mb-4 text-red-600">Rejeitar Projeto</h3>
+                <form id="reject-project-form">
+                    <input type="hidden" id="reject-project-id">
+                    <input type="hidden" id="reject-client-email">
+                    
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-semibold">Projeto:</label>
+                        <input type="text" id="reject-project-name" readonly 
+                               class="w-full p-2 border border-gray-300 rounded bg-gray-100 cursor-not-allowed">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="reject-message" class="block mb-2 text-sm font-semibold">
+                            Mensagem de Rejeição para o Cliente:
+                        </label>
+                        <textarea id="reject-message" rows="8" required
+                                  class="w-full p-3 border border-gray-300 rounded focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                                  placeholder="Digite a mensagem que será enviada ao cliente..."></textarea>
+                        <p class="text-sm text-gray-500 mt-1">Esta mensagem será enviada por e-mail ao cliente.</p>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-yellow-800">Atenção</h3>
+                                <div class="mt-2 text-sm text-yellow-700">
+                                    <p>Esta ação não pode ser desfeita. O projeto será excluído permanentemente e o cliente será notificado.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-4">
+                        <button type="button" id="cancel-reject-button" 
+                                class="btn bg-gray-500 hover:bg-gray-600 text-white px-6 py-2">
+                            Cancelar
                         </button>
-                        <button data-id="${project.id}" 
-                                data-name="${project.name}" 
-                                data-client-id="${project.client_id}"
-                                class="reject-btn text-red-500 hover:underline">
-                            Rejeitar
+                        <button type="submit" 
+                                class="btn bg-red-600 hover:bg-red-700 text-white px-6 py-2 flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Confirmar Rejeição
                         </button>
-                    </td>
-                `;
-                projectsTableBody.appendChild(tr);
-            });
-
-        } catch (error) {
-            console.error('Erro ao buscar projetos:', error);
-            projectsTableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="p-4 text-center text-red-500">
-                        Erro ao carregar projetos: ${error.message}
-                    </td>
-                </tr>
-            `;
-        }
-    }
-
-    // 3. Lógica de Edição
-    projectsTableBody.addEventListener('click', (e) => {
-        if (e.target.classList.contains('edit-btn')) {
-            const button = e.target;
-            projectIdInput.value = button.dataset.id;
-            projectNameInput.value = button.dataset.name;
-            projectStatusInput.value = button.dataset.status;
-            editModal.classList.remove('hidden');
-        }
-        
-        if (e.target.classList.contains('reject-btn')) {
-            const button = e.target;
-            const clientId = button.dataset.clientId;
-            
-            rejectProjectIdInput.value = button.dataset.id;
-            rejectProjectNameInput.value = button.dataset.name;
-            
-            // Mensagem padrão de rejeição
-            rejectMessageTextarea.value = `Prezado cliente,\n\nApós análise do seu projeto "${button.dataset.name}", lamentamos informar que não poderemos dar continuidade no momento devido às seguintes razões:\n\n• [Especifique o motivo aqui]\n\nAgradecemos seu interesse e estamos à disposição para futuras colaborações.\n\nAtenciosamente,\nEquipe DevX`;
-            
-            rejectModal.classList.remove('hidden');
-        }
-    });
-
-    // 4. Fechar modais
-    cancelEditButton.addEventListener('click', () => {
-        editModal.classList.add('hidden');
-    });
-
-    cancelRejectButton.addEventListener('click', () => {
-        rejectModal.classList.add('hidden');
-    });
-
-    // 5. Submit do Formulário de Edição
-    editForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const submitButton = editForm.querySelector('button[type="submit"]');
-        const originalText = submitButton.textContent;
-        
-        submitButton.disabled = true;
-        submitButton.textContent = 'Salvando...';
-
-        try {
-            const id = projectIdInput.value;
-            const updatedData = {
-                name: projectNameInput.value,
-                status: projectStatusInput.value
-            };
-
-            const { error } = await supabase
-                .from('projects')
-                .update(updatedData)
-                .eq('id', id);
-
-            if (error) {
-                throw new Error(error.message);
-            }
-
-            showErrorToast('Projeto atualizado com sucesso!');
-            editModal.classList.add('hidden');
-            await renderProjects();
-
-        } catch (error) {
-            showErrorToast('Erro ao atualizar o projeto: ' + error.message);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = originalText;
-        }
-    });
-
-    // 6. Submit do Formulário de Rejeição - CORRIGIDO
-    rejectForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const rejectButton = rejectForm.querySelector('button[type="submit"]');
-        const originalText = rejectButton.textContent;
-        
-        rejectButton.disabled = true;
-        rejectButton.textContent = 'Processando...';
-        
-        try {
-            const projectId = rejectProjectIdInput.value;
-            const message = rejectMessageTextarea.value;
-
-            // AGORA: Buscar o e-mail do cliente dinamicamente
-            const { data: clientProfile, error: clientError } = await supabase
-                .from('profiles')
-                .select('id, username')
-                .eq('id', rejectForm.querySelector('[data-client-id]')?.dataset.clientId)
-                .single();
-
-            if (clientError) {
-                console.warn('Não foi possível buscar perfil do cliente:', clientError);
-            }
-
-            // Para teste, use um e-mail fixo ou peça ao admin para digitar
-            const clientEmail = prompt(
-                'Digite o e-mail do cliente para envio da notificação:',
-                'cliente@exemplo.com'
-            );
-
-            if (!clientEmail) {
-                throw new Error('E-mail do cliente é obrigatório');
-            }
-
-            const response = await fetch('/api/reject-project', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-                },
-                body: JSON.stringify({
-                    projectId,
-                    clientEmail,
-                    message,
-                    adminId: user.id
-                })
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Erro ao rejeitar projeto');
-            }
-
-            showErrorToast('Projeto rejeitado e notificação enviada com sucesso!');
-            rejectModal.classList.add('hidden');
-            await renderProjects();
-
-        } catch (error) {
-            console.error('Erro ao rejeitar projeto:', error);
-            showErrorToast(error.message || 'Erro ao rejeitar projeto');
-        } finally {
-            rejectButton.disabled = false;
-            rejectButton.textContent = originalText;
-        }
-    });
-
-    // 7. Função auxiliar para mostrar toasts
-    function showErrorToast(message) {
-        // Implementação temporária
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded shadow-lg z-50';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 3000);
-    }
-
-    // Renderiza os projetos ao carregar
-    await renderProjects();
-}
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+    
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>
