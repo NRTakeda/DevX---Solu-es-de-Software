@@ -132,7 +132,7 @@ export async function initAdmin() {
         }
     }
 
-    // 3. Lógica de Clique nos Botões (COM MELHORIA DA IA)
+    // 3. Lógica de Clique nos Botões - CORREÇÃO DA BUSCA DE E-MAIL
     projectsTableBody.addEventListener('click', async (e) => {
         if (e.target.classList.contains('edit-btn')) {
             const button = e.target;
@@ -146,19 +146,41 @@ export async function initAdmin() {
             const button = e.target;
             const clientId = button.dataset.clientId;
             
-            // BUSCA AUTOMÁTICA DO E-MAIL DO CLIENTE (MELHORIA DA IA)
+            // CORREÇÃO: Buscar e-mail usando a função admin do Supabase
             try {
-                const { data: client, error } = await supabase
-                    .from('profiles')  // CORRIGIDO: era 'users', mas sua tabela é 'profiles'
-                    .select('email')
-                    .eq('id', clientId)
-                    .single();
-
-                if (error || !client) {
-                    throw new Error('Não foi possível encontrar o e-mail do cliente.');
+                // Método 1: Usando admin API (mais confiável)
+                const { data: authData, error: authError } = await supabase.auth.admin.getUserById(clientId);
+                
+                if (authError) {
+                    console.warn('Erro ao buscar e-mail via admin:', authError);
+                    
+                    // Método 2: Buscar via RPC function se disponível
+                    const { data: rpcData, error: rpcError } = await supabase
+                        .rpc('get_user_email', { user_id: clientId });
+                    
+                    if (!rpcError && rpcData) {
+                        rejectClientEmailInput.value = rpcData;
+                    } else {
+                        // Método 3: Buscar de tabela customizada se existir
+                        const { data: customData, error: customError } = await supabase
+                            .from('user_emails') // ou outra tabela customizada
+                            .select('email')
+                            .eq('user_id', clientId)
+                            .single();
+                        
+                        if (!customError && customData) {
+                            rejectClientEmailInput.value = customData.email;
+                        } else {
+                            throw new Error('Não foi possível encontrar o e-mail automaticamente');
+                        }
+                    }
+                } else if (authData && authData.user && authData.user.email) {
+                    // Sucesso - e-mail encontrado via admin API
+                    rejectClientEmailInput.value = authData.user.email;
+                } else {
+                    throw new Error('E-mail não encontrado no perfil do usuário');
                 }
 
-                rejectClientEmailInput.value = client.email;
                 rejectProjectIdInput.value = button.dataset.id;
                 rejectProjectNameInput.value = button.dataset.name;
                 
@@ -168,7 +190,23 @@ export async function initAdmin() {
                 rejectModal.classList.remove('hidden');
 
             } catch (error) {
-                showErrorToast(error.message);
+                console.error('Erro ao buscar e-mail:', error);
+                
+                // Fallback: pedir e-mail manualmente
+                const clientEmail = prompt(
+                    `E-mail do cliente não encontrado automaticamente. \n\nDigite o e-mail para notificação do projeto "${button.dataset.name}":`,
+                    'cliente@exemplo.com'
+                );
+                
+                if (clientEmail && clientEmail.includes('@')) {
+                    rejectClientEmailInput.value = clientEmail;
+                    rejectProjectIdInput.value = button.dataset.id;
+                    rejectProjectNameInput.value = button.dataset.name;
+                    rejectMessageTextarea.value = `Prezado cliente,\n\nApós análise do seu projeto "${button.dataset.name}", lamentamos informar que não poderemos dar continuidade no momento devido às seguintes razões:\n\n• [Especifique o motivo aqui]\n\nAgradecemos seu interesse e estamos à disposição para futuras colaborações.\n\nAtenciosamente,\nEquipe DevX`;
+                    rejectModal.classList.remove('hidden');
+                } else {
+                    showErrorToast('E-mail do cliente é necessário para rejeitar o projeto.');
+                }
             }
         }
     });
@@ -220,7 +258,7 @@ export async function initAdmin() {
         }
     });
 
-    // 6. Submit do Formulário de Rejeição (COM MELHORIA DA IA)
+    // 6. Submit do Formulário de Rejeição
     rejectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -232,7 +270,7 @@ export async function initAdmin() {
         
         try {
             const projectId = rejectProjectIdInput.value;
-            const clientEmail = rejectClientEmailInput.value; // Agora pega do input escondido
+            const clientEmail = rejectClientEmailInput.value;
             const message = rejectMessageTextarea.value;
             const { data: { session } } = await supabase.auth.getSession();
 
@@ -258,6 +296,16 @@ export async function initAdmin() {
 
             if (!response.ok) {
                 throw new Error(result.message || 'Erro ao rejeitar projeto');
+            }
+
+            // Atualizar status do projeto para "Rejeitado"
+            const { error: updateError } = await supabase
+                .from('projects')
+                .update({ status: 'Rejeitado' })
+                .eq('id', projectId);
+
+            if (updateError) {
+                console.error('Erro ao atualizar status:', updateError);
             }
 
             showSuccessToast('Projeto rejeitado e notificação enviada com sucesso!');
