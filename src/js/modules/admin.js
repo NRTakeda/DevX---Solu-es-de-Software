@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { showSuccessToast, showErrorToast } from './notifications.js';
 
 export async function initAdmin() {
     const projectsTableBody = document.getElementById('projects-table-body');
@@ -39,7 +40,7 @@ export async function initAdmin() {
     const rejectMessageTextarea = document.getElementById('reject-message');
     const rejectClientEmailInput = document.getElementById('reject-client-email');
 
-    // 2. Função CORRIGIDA para buscar projetos
+    // 2. Função para buscar e renderizar projetos
     async function renderProjects() {
         try {
             // PRIMEIRO: Buscar apenas os projetos
@@ -77,7 +78,7 @@ export async function initAdmin() {
                 });
             }
 
-            // TERCEIRO: Renderizar a tabela - REMOVIDO O ID EXPOSTO
+            // TERCEIRO: Renderizar a tabela
             projectsTableBody.innerHTML = '';
             projects.forEach(project => {
                 const client = clientsMap[project.client_id];
@@ -90,7 +91,6 @@ export async function initAdmin() {
                     <td class="p-4">${project.name || 'N/A'}</td>
                     <td class="p-4">
                         <div>${clientUsername}</div>
-                        <!-- REMOVIDO: <div class="text-sm text-gray-500">ID: ${project.client_id}</div> -->
                     </td>
                     <td class="p-4">
                         <span class="px-2 py-1 rounded-full text-xs ${
@@ -132,8 +132,8 @@ export async function initAdmin() {
         }
     }
 
-    // 3. Lógica de Edição
-    projectsTableBody.addEventListener('click', (e) => {
+    // 3. Lógica de Clique nos Botões (COM MELHORIA DA IA)
+    projectsTableBody.addEventListener('click', async (e) => {
         if (e.target.classList.contains('edit-btn')) {
             const button = e.target;
             projectIdInput.value = button.dataset.id;
@@ -146,17 +146,34 @@ export async function initAdmin() {
             const button = e.target;
             const clientId = button.dataset.clientId;
             
-            rejectProjectIdInput.value = button.dataset.id;
-            rejectProjectNameInput.value = button.dataset.name;
-            
-            // Mensagem padrão de rejeição
-            rejectMessageTextarea.value = `Prezado cliente,\n\nApós análise do seu projeto "${button.dataset.name}", lamentamos informar que não poderemos dar continuidade no momento devido às seguintes razões:\n\n• [Especifique o motivo aqui]\n\nAgradecemos seu interesse e estamos à disposição para futuras colaborações.\n\nAtenciosamente,\nEquipe DevX`;
-            
-            rejectModal.classList.remove('hidden');
+            // BUSCA AUTOMÁTICA DO E-MAIL DO CLIENTE (MELHORIA DA IA)
+            try {
+                const { data: client, error } = await supabase
+                    .from('profiles')  // CORRIGIDO: era 'users', mas sua tabela é 'profiles'
+                    .select('email')
+                    .eq('id', clientId)
+                    .single();
+
+                if (error || !client) {
+                    throw new Error('Não foi possível encontrar o e-mail do cliente.');
+                }
+
+                rejectClientEmailInput.value = client.email;
+                rejectProjectIdInput.value = button.dataset.id;
+                rejectProjectNameInput.value = button.dataset.name;
+                
+                // Mensagem padrão de rejeição
+                rejectMessageTextarea.value = `Prezado cliente,\n\nApós análise do seu projeto "${button.dataset.name}", lamentamos informar que não poderemos dar continuidade no momento devido às seguintes razões:\n\n• [Especifique o motivo aqui]\n\nAgradecemos seu interesse e estamos à disposição para futuras colaborações.\n\nAtenciosamente,\nEquipe DevX`;
+                
+                rejectModal.classList.remove('hidden');
+
+            } catch (error) {
+                showErrorToast(error.message);
+            }
         }
     });
 
-    // 4. Fechar modais
+    // 4. Fechar Modais
     cancelEditButton.addEventListener('click', () => {
         editModal.classList.add('hidden');
     });
@@ -191,7 +208,7 @@ export async function initAdmin() {
                 throw new Error(error.message);
             }
 
-            showErrorToast('Projeto atualizado com sucesso!');
+            showSuccessToast('Projeto atualizado com sucesso!');
             editModal.classList.add('hidden');
             await renderProjects();
 
@@ -203,7 +220,7 @@ export async function initAdmin() {
         }
     });
 
-    // 6. Submit do Formulário de Rejeição
+    // 6. Submit do Formulário de Rejeição (COM MELHORIA DA IA)
     rejectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -215,23 +232,19 @@ export async function initAdmin() {
         
         try {
             const projectId = rejectProjectIdInput.value;
+            const clientEmail = rejectClientEmailInput.value; // Agora pega do input escondido
             const message = rejectMessageTextarea.value;
-
-            // Solicitar e-mail de forma segura
-            const clientEmail = prompt(
-                'Digite o e-mail do cliente para envio da notificação:',
-                'cliente@exemplo.com'
-            );
+            const { data: { session } } = await supabase.auth.getSession();
 
             if (!clientEmail || !clientEmail.includes('@')) {
-                throw new Error('Por favor, digite um e-mail válido para o cliente');
+                throw new Error('E-mail do cliente inválido');
             }
 
             const response = await fetch('/api/reject-project', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                    'Authorization': `Bearer ${session.access_token}`
                 },
                 body: JSON.stringify({
                     projectId,
@@ -247,7 +260,7 @@ export async function initAdmin() {
                 throw new Error(result.message || 'Erro ao rejeitar projeto');
             }
 
-            showErrorToast('Projeto rejeitado e notificação enviada com sucesso!');
+            showSuccessToast('Projeto rejeitado e notificação enviada com sucesso!');
             rejectModal.classList.add('hidden');
             await renderProjects();
 
@@ -260,19 +273,6 @@ export async function initAdmin() {
         }
     });
 
-    // 7. Função auxiliar para mostrar toasts
-    function showErrorToast(message) {
-        // Implementação temporária
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded shadow-lg z-50';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            document.body.removeChild(toast);
-        }, 3000);
-    }
-
-    // Renderiza os projetos ao carregar
+    // 7. Renderiza os projetos ao carregar
     await renderProjects();
 }
