@@ -39,12 +39,7 @@ function createEditProjectModal() {
     return document.getElementById('edit-project-modal');
 }
 
-export async function initDashboard() {
-    if (!document.getElementById('dashboard-sidebar')) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { window.location.href = '/login.html'; return; }
-
+export async function initDashboard(user) {
     const pendingDescription = sessionStorage.getItem('pendingProjectDescription');
     if (pendingDescription) { await createPendingProject(pendingDescription, user.id); }
     
@@ -97,22 +92,31 @@ export async function initDashboard() {
     navLinkProjects.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProjects); showContent(contentProjects); });
     navLinkProfile.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProfile); showContent(contentProfile); });
 
-    // --- LÓGICA DE PROJETOS - ATUALIZADA COM EDIÇÃO ---
+    // --- LÓGICA DE PROJETOS - COM REGRA DE NEGÓCIO ATUALIZADA ---
     async function renderProjects() {
-        const { data: projects, error, count } = await supabase 
+        // 1. Busca TODOS os projetos do usuário para exibir na lista (incluindo rejeitados)
+        const { data: allProjects, error: projectsError } = await supabase 
             .from('projects')
-            .select('*', { count: 'exact' })
+            .select('*')
             .eq('client_id', user.id)
             .order('created_at', { ascending: false });
 
-        if (error) { 
+        // 2. Faz uma contagem separada APENAS dos projetos que NÃO foram rejeitados
+        const { count: activeProjectsCount, error: countError } = await supabase
+            .from('projects')
+            .select('*', { count: 'exact', head: true }) // head: true é uma otimização para apenas contar
+            .eq('client_id', user.id)
+            .not('status', 'eq', 'Rejeitado'); // AQUI ESTÁ A NOVA REGRA DE NEGÓCIO
+
+        if (projectsError || countError) { 
             showErrorToast('Erro ao carregar projetos.'); 
+            console.error(projectsError || countError);
             return; 
         }
 
         projectsListDiv.innerHTML = '';
 
-        if (projects.length === 0) {
+        if (allProjects.length === 0) {
             projectsListDiv.innerHTML = `
                 <div class="card p-8 text-center">
                     <h3 class="text-xl font-semibold mb-2">Nenhum projeto encontrado</h3>
@@ -120,7 +124,7 @@ export async function initDashboard() {
                 </div>
             `;
         } else {
-            projects.forEach(project => {
+            allProjects.forEach(project => {
                 const projectCard = document.createElement('div');
                 projectCard.className = 'card p-6';
                 projectCard.innerHTML = `
@@ -164,8 +168,8 @@ export async function initDashboard() {
             });
         }
 
-        // Controle de limite de projetos
-        if (count >= 5) {
+        // 3. A lógica de limite agora usa a contagem de projetos ATIVOS
+        if (activeProjectsCount >= 5) {
             createProjectSection.classList.add('hidden');
             limitWarningSection.classList.remove('hidden');
         } else {
@@ -205,36 +209,27 @@ export async function initDashboard() {
         submitButton.textContent = 'Enviar Solicitação';
     });
 
-    // --- LÓGICA DE EDIÇÃO DE PROJETO ---
+    // --- LÓGICA DE EDIÇÃO E EXCLUSÃO DE PROJETO ---
     document.addEventListener('click', async (e) => {
-        // Botão de editar projeto
         if (e.target.classList.contains('edit-project-btn')) {
             const projectId = e.target.dataset.id;
             const projectName = e.target.dataset.name || '';
             const projectDescription = e.target.dataset.description || '';
 
-            // Preencher modal com dados atuais
             document.getElementById('edit-project-id').value = projectId;
             document.getElementById('edit-project-name').value = projectName;
             document.getElementById('edit-project-description').value = projectDescription;
             
-            // Mostrar modal
             editModal.classList.remove('hidden');
         }
 
-        // Botão de excluir projeto
         const deleteButton = e.target.closest('.delete-project-btn');
         if (deleteButton) {
             const projectId = deleteButton.dataset.id;
             const userConfirmation = window.confirm("Você tem certeza que deseja excluir esta solicitação de projeto? Esta ação não pode ser desfeita.");
 
             if (userConfirmation) {
-                const { error } = await supabase
-                    .from('projects')
-                    .delete()
-                    .eq('id', projectId)
-                    .eq('client_id', user.id); // Segurança: só deleta próprios projetos
-
+                const { error } = await supabase.from('projects').delete().eq('id', projectId).eq('client_id', user.id);
                 if (error) {
                     showErrorToast("Erro ao excluir o projeto. Tente novamente.");
                     console.error("Erro de exclusão:", error);
@@ -267,17 +262,16 @@ export async function initDashboard() {
                 .from('projects')
                 .update({ 
                     name: name,
-                    description: description,
-                    updated_at: new Date().toISOString()
+                    description: description
                 })
                 .eq('id', projectId)
-                .eq('client_id', user.id); // Segurança: garantir que é dono do projeto
+                .eq('client_id', user.id);
 
             if (error) throw error;
             
             showSuccessToast('Projeto atualizado com sucesso!');
             editModal.classList.add('hidden');
-            await renderProjects(); // Recarregar a lista
+            await renderProjects();
             
         } catch (error) {
             console.error('Erro ao atualizar projeto:', error);
