@@ -1,8 +1,4 @@
-// /api/consultor-ia.js (Versão Conversacional)
 import { z } from 'zod';
-
-// Não precisamos mais do rate-limit aqui, pois o front-end controlará o fluxo.
-// A Vercel já tem proteção contra abuso no plano Hobby.
 
 const requestSchema = z.object({
   history: z.array(
@@ -29,7 +25,8 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Chave de API não configurada no servidor.' });
   }
 
-  const modelName = "gemini-1.5-flash"; // Usamos o modelo mais rápido para uma conversa fluida
+  // CORREÇÃO: Adicionado "-latest" para garantir o uso da versão estável mais recente.
+  const modelName = "gemini-1.5-flash-latest";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   try {
@@ -43,6 +40,7 @@ export default async function handler(request, response) {
 
     if (!geminiResponse.ok) {
         const errorBody = await geminiResponse.json();
+        // Este console.error foi o que nos deu o print do log, muito útil!
         console.error("Erro detalhado do Google:", errorBody);
         throw new Error(`Erro na API do Gemini: ${geminiResponse.statusText}`);
     }
