@@ -38,6 +38,7 @@ export async function initAdmin() {
     const rejectProjectIdInput = document.getElementById('reject-project-id');
     const rejectProjectNameInput = document.getElementById('reject-project-name');
     const rejectMessageTextarea = document.getElementById('reject-message');
+    const rejectClientEmailInput = document.getElementById('reject-client-email');
 
     // 2. Função para buscar e renderizar projetos
     async function renderProjects() {
@@ -129,17 +130,12 @@ export async function initAdmin() {
                 status: projectStatusInput.value
             };
 
-            const { error } = await supabase
-                .from('projects')
-                .update(updatedData)
-                .eq('id', id);
-
+            const { error } = await supabase.from('projects').update(updatedData).eq('id', id);
             if (error) throw new Error(error.message);
 
             showSuccessToast('Projeto atualizado com sucesso!');
             editModal.classList.add('hidden');
             await renderProjects();
-
         } catch (error) {
             showErrorToast('Erro ao atualizar o projeto: ' + error.message);
         } finally {
@@ -148,7 +144,7 @@ export async function initAdmin() {
         }
     });
 
-    // 6. Submit do Formulário de Rejeição (Lógica mailto:)
+    // 6. Submit do Formulário de Rejeição
     rejectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -160,7 +156,6 @@ export async function initAdmin() {
         
         try {
             const projectId = rejectProjectIdInput.value;
-            const projectName = rejectProjectNameInput.value;
             const message = rejectMessageTextarea.value;
             
             const response = await fetch('/api/reject-project', {
@@ -168,36 +163,25 @@ export async function initAdmin() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     projectId,
+                    message,
                     adminId: user.id
                 })
             });
 
             const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Erro ao rejeitar projeto no sistema');
+            if (!response.ok) {
+                throw new Error(result.message || 'Ocorreu um erro desconhecido');
+            }
             
-            // Sucesso! Agora preparamos e abrimos o e-mail para o admin
-            const clientEmail = result.clientEmail;
-            const subject = `Atualização sobre seu projeto: ${projectName}`;
-            
-            // Codifica o corpo da mensagem para ser usado em uma URL
-            const body = encodeURIComponent(message);
-            
-            // Cria o link mailto:
-            const mailtoLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}&body=${body}`;
-            
-            // Abre o cliente de e-mail do usuário em uma nova aba
-            window.open(mailtoLink, '_blank');
-
-            showSuccessToast('Projeto rejeitado! Abra seu app de e-mail para notificar o cliente.');
+            showSuccessToast(result.message);
             rejectModal.classList.add('hidden');
             await renderProjects();
-
         } catch (error) {
             console.error('Erro ao rejeitar projeto:', error);
             showErrorToast(error.message);
         } finally {
             rejectButton.disabled = false;
-            rejectButton.textContent = originalText;
+            rejectButton.textContent = "Confirmar Rejeição";
         }
     });
 

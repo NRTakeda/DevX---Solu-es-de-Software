@@ -2,10 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import nodemailer from 'nodemailer';
 
-// REVISADO: Alterada a validação da mensagem para ser menos restritiva.
+// Schema de validação final e corrigido
 const rejectionSchema = z.object({
   projectId: z.string().uuid('ID do projeto inválido'),
-  message: z.string().min(1, 'A mensagem não pode estar vazia.'), // Apenas garantimos que não está vazia.
+  message: z.string().min(1, 'A mensagem não pode estar vazia.'),
   adminId: z.string().uuid('ID do administrador inválido')
 });
 
@@ -16,7 +16,6 @@ export default async function handler(request, response) {
 
   const validation = rejectionSchema.safeParse(request.body);
   if (!validation.success) {
-    // Melhorando a mensagem de erro para ser mais específica
     const firstError = validation.error.errors[0]?.message || 'Dados de entrada inválidos.';
     return response.status(400).json({ success: false, message: firstError });
   }
@@ -85,7 +84,6 @@ export default async function handler(request, response) {
   }
 }
 
-// A função generateRejectionEmail permanece a mesma
 function generateRejectionEmail(projectName, message, adminName) {
   return `
     <!DOCTYPE html>
