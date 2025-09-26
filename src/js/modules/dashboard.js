@@ -9,7 +9,6 @@ async function createPendingProject(description, userId) {
     sessionStorage.removeItem('pendingProjectDescription');
 }
 
-// Função para criar o modal de edição
 function createEditProjectModal() {
     const modalHTML = `
         <div id="edit-project-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
@@ -43,7 +42,7 @@ export async function initDashboard(user) {
     const pendingDescription = sessionStorage.getItem('pendingProjectDescription');
     if (pendingDescription) { await createPendingProject(pendingDescription, user.id); }
     
-    // --- MAPEAMENTO DOS ELEMENTOS ---
+    const projectsCountSpan = document.getElementById('projects-count');
     const sidebar = document.getElementById('dashboard-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -65,14 +64,11 @@ export async function initDashboard(user) {
     const editButton = document.getElementById('edit-button');
     const saveButton = document.getElementById('save-button');
     const logoutButton = document.getElementById('logout-button');
-    const statusMessage = document.getElementById('form-status-message');
     
-    // --- CRIAR MODAL DE EDIÇÃO ---
     const editModal = createEditProjectModal();
     const editForm = document.getElementById('edit-project-form');
     const cancelEditBtn = document.getElementById('cancel-edit-project');
 
-    // --- LÓGICA DA SIDEBAR RESPONSIVA ---
     const toggleSidebar = () => {
         sidebar.classList.toggle('-translate-x-full');
         sidebarOverlay.classList.toggle('hidden');
@@ -80,7 +76,6 @@ export async function initDashboard(user) {
     sidebarToggleBtn.addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
 
-    // --- LÓGICA DE NAVEGAÇÃO INTERNA ---
     function showContent(contentToShow) {
         [contentProjects, contentProfile].forEach(c => c.classList.add('hidden'));
         contentToShow.classList.remove('hidden');
@@ -92,41 +87,39 @@ export async function initDashboard(user) {
     navLinkProjects.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProjects); showContent(contentProjects); });
     navLinkProfile.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProfile); showContent(contentProfile); });
 
-    // --- LÓGICA DE PROJETOS - COM REGRA DE NEGÓCIO ATUALIZADA ---
     async function renderProjects() {
-        // 1. Busca TODOS os projetos do usuário para exibir na lista (incluindo rejeitados)
         const { data: allProjects, error: projectsError } = await supabase 
             .from('projects')
             .select('*')
             .eq('client_id', user.id)
             .order('created_at', { ascending: false });
 
-        // 2. Faz uma contagem separada APENAS dos projetos que NÃO foram rejeitados
         const { count: activeProjectsCount, error: countError } = await supabase
             .from('projects')
-            .select('*', { count: 'exact', head: true }) // head: true é uma otimização para apenas contar
+            .select('*', { count: 'exact', head: true })
             .eq('client_id', user.id)
-            .not('status', 'eq', 'Rejeitado'); // AQUI ESTÁ A NOVA REGRA DE NEGÓCIO
+            .not('status', 'eq', 'Rejeitado');
 
         if (projectsError || countError) { 
             showErrorToast('Erro ao carregar projetos.'); 
             console.error(projectsError || countError);
+            if(projectsCountSpan) projectsCountSpan.textContent = "Erro ao carregar";
             return; 
         }
 
+        // CORREÇÃO 2: Atualiza o contador para remover o "Carregando..."
+        if(projectsCountSpan) projectsCountSpan.textContent = `${allProjects.length} projeto(s) encontrado(s)`;
+        
         projectsListDiv.innerHTML = '';
 
         if (allProjects.length === 0) {
-            projectsListDiv.innerHTML = `
-                <div class="card p-8 text-center">
-                    <h3 class="text-xl font-semibold mb-2">Nenhum projeto encontrado</h3>
-                    <p class="text-gray-600">Você ainda não solicitou nenhum projeto.</p>
-                </div>
-            `;
+            projectsListDiv.innerHTML = `<div class="card p-8 text-center"><h3 class="text-xl font-semibold mb-2">Nenhum projeto encontrado</h3><p class="text-gray-600">Você ainda não solicitou nenhum projeto.</p></div>`;
         } else {
             allProjects.forEach(project => {
                 const projectCard = document.createElement('div');
                 projectCard.className = 'card p-6';
+                
+                // CORREÇÃO 1: HTML completo do card restaurado.
                 projectCard.innerHTML = `
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex-grow">
@@ -134,29 +127,29 @@ export async function initDashboard(user) {
                             <p class="text-gray-500 text-sm">Criado em: ${new Date(project.created_at).toLocaleDateString('pt-BR')}</p>
                         </div>
                         <span class="px-3 py-1 rounded-full text-xs font-medium ${
-                            project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' :
-                            project.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
-                            project.status === 'Rejeitado' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
+                            project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200' :
+                            project.status === 'Aprovado' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200' :
+                            project.status === 'Rejeitado' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200' :
+                            'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                         }">${project.status}</span>
                     </div>
                     
                     <div class="mb-4">
-                        <p class="text-gray-700 project-description">${project.description || 'Sem descrição'}</p>
+                        <p class="text-gray-700 dark:text-gray-300 project-description">${project.description || 'Sem descrição'}</p>
                     </div>
                     
                     <div class="flex justify-between items-center">
-                        <div class="text-sm text-gray-500">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
                             ID: ${project.id.substring(0, 8)}...
                         </div>
                         <div class="space-x-2">
-                            <button class="edit-project-btn text-blue-600 hover:text-blue-800 text-sm font-medium" 
+                            <button class="edit-project-btn text-blue-600 hover:text-blue-800 dark:text-sky-400 dark:hover:text-sky-300 text-sm font-medium" 
                                     data-id="${project.id}"
                                     data-name="${project.name || ''}"
                                     data-description="${project.description || ''}">
                                 Editar
                             </button>
-                            <button data-id="${project.id}" class="delete-project-btn text-red-500 hover:text-red-700 p-2 rounded-full" aria-label="Excluir projeto">
+                            <button data-id="${project.id}" class="delete-project-btn text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-2 rounded-full" aria-label="Excluir projeto">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
@@ -168,7 +161,6 @@ export async function initDashboard(user) {
             });
         }
 
-        // 3. A lógica de limite agora usa a contagem de projetos ATIVOS
         if (activeProjectsCount >= 5) {
             createProjectSection.classList.add('hidden');
             limitWarningSection.classList.remove('hidden');
@@ -178,25 +170,17 @@ export async function initDashboard(user) {
         }
     }
 
-    // --- LÓGICA DE CRIAÇÃO DE PROJETO ---
     createProjectForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const description = descriptionTextarea.value;
-        
         if (description.length < 20) { 
             showErrorToast('Por favor, descreva sua ideia com mais detalhes (mínimo 20 caracteres).'); 
             return; 
         }
-
         const submitButton = createProjectForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Enviando...';
-
-        const { error } = await supabase.from('projects').insert({ 
-            description: description, 
-            client_id: user.id 
-        });
-
+        const { error } = await supabase.from('projects').insert({ description: description, client_id: user.id });
         if (error) { 
             showErrorToast('Erro ao enviar sua solicitação.'); 
         } else { 
@@ -204,31 +188,24 @@ export async function initDashboard(user) {
             descriptionTextarea.value = ''; 
             await renderProjects(); 
         }
-
         submitButton.disabled = false;
         submitButton.textContent = 'Enviar Solicitação';
     });
 
-    // --- LÓGICA DE EDIÇÃO E EXCLUSÃO DE PROJETO ---
     document.addEventListener('click', async (e) => {
         if (e.target.classList.contains('edit-project-btn')) {
             const projectId = e.target.dataset.id;
-            const projectName = e.target.dataset.name || '';
-            const projectDescription = e.target.dataset.description || '';
-
+            const projectName = e.target.dataset.name;
+            const projectDescription = e.target.dataset.description;
             document.getElementById('edit-project-id').value = projectId;
             document.getElementById('edit-project-name').value = projectName;
             document.getElementById('edit-project-description').value = projectDescription;
-            
             editModal.classList.remove('hidden');
         }
-
         const deleteButton = e.target.closest('.delete-project-btn');
         if (deleteButton) {
             const projectId = deleteButton.dataset.id;
-            const userConfirmation = window.confirm("Você tem certeza que deseja excluir esta solicitação de projeto? Esta ação não pode ser desfeita.");
-
-            if (userConfirmation) {
+            if (window.confirm("Você tem certeza que deseja excluir esta solicitação de projeto? Esta ação não pode ser desfeita.")) {
                 const { error } = await supabase.from('projects').delete().eq('id', projectId).eq('client_id', user.id);
                 if (error) {
                     showErrorToast("Erro ao excluir o projeto. Tente novamente.");
@@ -241,38 +218,24 @@ export async function initDashboard(user) {
         }
     });
 
-    // --- LÓGICA DO MODAL DE EDIÇÃO ---
     cancelEditBtn.addEventListener('click', () => {
         editModal.classList.add('hidden');
     });
 
     editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const projectId = document.getElementById('edit-project-id').value;
         const name = document.getElementById('edit-project-name').value;
         const description = document.getElementById('edit-project-description').value;
-        
         const submitButton = editForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Salvando...';
-
         try {
-            const { error } = await supabase
-                .from('projects')
-                .update({ 
-                    name: name,
-                    description: description
-                })
-                .eq('id', projectId)
-                .eq('client_id', user.id);
-
+            const { error } = await supabase.from('projects').update({ name: name, description: description }).eq('id', projectId).eq('client_id', user.id);
             if (error) throw error;
-            
             showSuccessToast('Projeto atualizado com sucesso!');
             editModal.classList.add('hidden');
             await renderProjects();
-            
         } catch (error) {
             console.error('Erro ao atualizar projeto:', error);
             showErrorToast('Erro ao atualizar projeto: ' + error.message);
@@ -282,13 +245,11 @@ export async function initDashboard(user) {
         }
     });
 
-    // --- LÓGICA DE PERFIL ---
     const profileInputs = [usernameInput, fullNameInput, websiteInput];
     
     async function loadProfile() {
         emailDisplay.value = user.email;
         const { data: profile } = await supabase.from('profiles').select('username, full_name, website').eq('id', user.id).single();
-        
         if (profile) {
             usernameInput.value = profile.username || '';
             fullNameInput.value = profile.full_name || '';
@@ -311,17 +272,8 @@ export async function initDashboard(user) {
         e.preventDefault();
         saveButton.disabled = true; 
         saveButton.textContent = 'Salvando...';
-        
-        const updates = { 
-            id: user.id, 
-            username: usernameInput.value, 
-            full_name: fullNameInput.value, 
-            website: websiteInput.value, 
-            updated_at: new Date() 
-        };
-        
+        const updates = { id: user.id, username: usernameInput.value, full_name: fullNameInput.value, website: websiteInput.value, updated_at: new Date() };
         const { error } = await supabase.from('profiles').upsert(updates);
-        
         if (error) { 
             showErrorToast('Erro ao salvar o perfil.'); 
         } else { 
@@ -329,7 +281,6 @@ export async function initDashboard(user) {
             welcomeMessage.textContent = `Bem-vindo(a), ${updates.username || user.email}!`; 
             toggleEditMode(false); 
         }
-        
         saveButton.disabled = false; 
         saveButton.textContent = 'Salvar Alterações';
     });
@@ -339,7 +290,6 @@ export async function initDashboard(user) {
         window.location.href = '/login.html'; 
     });
 
-    // --- INICIALIZAÇÃO DA PÁGINA ---
     await Promise.all([renderProjects(), loadProfile()]);
     setActiveLink(navLinkProjects);
     showContent(contentProjects);
