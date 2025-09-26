@@ -2,9 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import nodemailer from 'nodemailer';
 
+// REVISADO: Alterada a validação da mensagem para ser menos restritiva.
 const rejectionSchema = z.object({
   projectId: z.string().uuid('ID do projeto inválido'),
-  message: z.string().min(10, 'A mensagem é obrigatória'),
+  message: z.string().min(1, 'A mensagem não pode estar vazia.'), // Apenas garantimos que não está vazia.
   adminId: z.string().uuid('ID do administrador inválido')
 });
 
@@ -15,7 +16,9 @@ export default async function handler(request, response) {
 
   const validation = rejectionSchema.safeParse(request.body);
   if (!validation.success) {
-    return response.status(400).json({ success: false, message: 'Dados de entrada inválidos.' });
+    // Melhorando a mensagem de erro para ser mais específica
+    const firstError = validation.error.errors[0]?.message || 'Dados de entrada inválidos.';
+    return response.status(400).json({ success: false, message: firstError });
   }
   
   const { projectId, message, adminId } = validation.data;
@@ -43,7 +46,6 @@ export default async function handler(request, response) {
     }
     const clientEmail = clientUser.email;
 
-    // --- LÓGICA DE ENVIO DE E-MAIL COM NODEMAILER ---
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -58,7 +60,6 @@ export default async function handler(request, response) {
         subject: `Atualização sobre seu projeto: ${project.name || 'Projeto DevX'}`,
         html: generateRejectionEmail(project.name, message, adminProfile.full_name || adminProfile.username),
     });
-    // --- FIM DA LÓGICA DO NODEMAILER ---
 
     await supabaseAdmin.from('projects').update({ status: 'Rejeitado' }).eq('id', projectId);
     
@@ -84,7 +85,7 @@ export default async function handler(request, response) {
   }
 }
 
-// === FUNÇÃO AUXILIAR PARA GERAR O E-MAIL (COMPLETA) ===
+// A função generateRejectionEmail permanece a mesma
 function generateRejectionEmail(projectName, message, adminName) {
   return `
     <!DOCTYPE html>
@@ -142,15 +143,6 @@ function generateRejectionEmail(projectName, message, adminName) {
                 text-align: center; 
                 color: #6c757d; 
                 font-size: 14px; 
-            }
-            .btn { 
-                display: inline-block; 
-                padding: 12px 24px; 
-                background: #0071e3; 
-                color: white; 
-                text-decoration: none; 
-                border-radius: 6px; 
-                margin: 10px 0; 
             }
         </style>
     </head>
