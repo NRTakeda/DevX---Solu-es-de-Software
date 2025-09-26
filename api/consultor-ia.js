@@ -25,8 +25,8 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Chave de API não configurada no servidor.' });
   }
 
-  // CORREÇÃO: Adicionado "-latest" para garantir o uso da versão estável mais recente.
-  const modelName = "gemini-1.5-flash-latest";
+  // REVISADO: Trocado para o modelo estável e amplamente disponível 'gemini-pro'.
+  const modelName = "gemini-pro";
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   try {
@@ -40,22 +40,24 @@ export default async function handler(request, response) {
 
     if (!geminiResponse.ok) {
         const errorBody = await geminiResponse.json();
-        // Este console.error foi o que nos deu o print do log, muito útil!
         console.error("Erro detalhado do Google:", errorBody);
         throw new Error(`Erro na API do Gemini: ${geminiResponse.statusText}`);
     }
 
     const result = await geminiResponse.json();
-    const candidate = result.candidates?.[0];
-    if (!candidate || !candidate.content?.parts?.[0]?.text) {
-        throw new Error("A resposta da IA veio em um formato inesperado ou vazia.");
+    
+    // Adicionando uma verificação extra para casos onde a IA pode se recusar a responder
+    if (!result.candidates || result.candidates.length === 0 || !result.candidates[0].content) {
+        console.warn("Resposta da IA bloqueada ou vazia:", result);
+        throw new Error("A IA não forneceu uma resposta. Tente reformular sua pergunta.");
     }
-    const text = candidate.content.parts[0].text;
+
+    const text = result.candidates[0].content.parts[0].text;
 
     return response.status(200).json({ result: text });
 
   } catch (error) {
-    console.error(error);
-    return response.status(500).json({ message: 'Ocorreu um erro ao processar sua solicitação.' });
+    console.error("Erro na API do Gemini:", error);
+    return response.status(500).json({ message: error.message || 'Ocorreu um erro ao processar sua solicitação.' });
   }
 }
