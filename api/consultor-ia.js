@@ -54,6 +54,7 @@ export default async function handler(request, response) {
         body: JSON.stringify(payload)
     });
 
+
     if (!deepseekResponse.ok) {
         const errorBody = await deepseekResponse.json();
         console.error("Erro detalhado da DeepSeek:", errorBody);
