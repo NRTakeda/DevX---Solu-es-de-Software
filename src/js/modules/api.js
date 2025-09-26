@@ -103,18 +103,18 @@ function initAIChatWidget() {
 
     let conversationHistory = [];
     let userMessageCount = 0;
-    const MAX_USER_MESSAGES = 7;
-    const MAX_USER_CHARACTERS = 500;
+    const MAX_USER_MESSAGES = 5;
+    const MAX_USER_CHARACTERS = 250;
 
-    const systemPrompt = `Você é o "DevX Consultant", um assistente conversacional da agência de software DevX. Seu objetivo é guiar o usuário em 3 etapas. Seja sempre breve e amigável.
+    const systemPrompt = `DevX Consultant - Guia em 3 etapas:
 
-    ETAPA 1: Quando o usuário apresentar a ideia inicial, sua primeira resposta deve ser uma breve análise da oportunidade de negócio (2-3 frases). Termine EXATAMENTE com a frase: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
+ETAPA 1: Analise a ideia (2-3 frases). Finalize com: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
 
-    ETAPA 2: Na sua segunda resposta, liste 3 exemplos de sites reais do segmento do cliente. **Mostre apenas o nome da empresa, sem links ou URLs.** Use o formato '>>>' para a lista. Depois da lista, pergunte EXATAMENTE: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
+ETAPA 2: Liste 3 exemplos reais (apenas nomes) usando '>>>'. depois pergunte: "Algum desses exemplos se alinha? Diga o nome ou descreva melhor."
 
-    ETAPA 3: Após o usuário responder à pergunta sobre os exemplos, sua terceira e última resposta deve ser o HTML para o botão de ação. Responda APENAS com o seguinte código HTML, sem nenhum texto adicional: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
-    
-    **REGRA FINAL: Após você ter respondido com o código HTML da Etapa 3, a conversa terminou. Se o usuário escrever qualquer outra coisa, responda APENAS com a seguinte frase: "Para prosseguir com sua ideia, por favor, clique no botão 'Iniciar Projeto' acima ou utilize o formulário de contato no final da página. Nossa equipe de especialistas está pronta para ajudar!"**`;
+ETAPA 3: Após resposta sobre exemplos, responda SOMENTE com: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
+
+FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir, clique em 'Iniciar Projeto' ou use o formulário de contato."`;
 
     function appendMessage(text, sender, isHtml = false) {
         const messageDiv = document.createElement('div');
@@ -141,7 +141,7 @@ function initAIChatWidget() {
         const charCount = document.createElement('div');
         charCount.id = 'char-count';
         charCount.className = 'character-counter';
-        charCount.innerHTML = '<span id="char-count-number">0</span>/500';
+        charCount.innerHTML = '<span id="char-count-number">0</span>/250';
         
         // Insere o contador após o textarea
         if (chatInput.parentNode) {
