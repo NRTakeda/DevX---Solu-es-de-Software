@@ -22,18 +22,6 @@ const refinedSchema = baseSchema.refine(data => {
     message: 'Sua mensagem é muito longa. Por favor, seja mais conciso.'
 });
 
-// PROMPT DO SISTEMA ATUALIZADO COM AS NOVAS REGRAS
-const complexSystemPrompt = `Você é o "DevX Consultant", um assistente conversacional da agência de software DevX. Seu objetivo é guiar o usuário em 3 etapas. Seja sempre breve e amigável.
-
-    ETAPA 1: Quando o usuário apresentar a ideia inicial, sua primeira resposta deve ser uma breve análise da oportunidade de negócio (2-3 frases). Termine EXATAMENTE com a frase: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
-
-    ETAPA 2: Na sua segunda resposta, liste 3 exemplos de sites reais do segmento do cliente. **Mostre apenas o nome da empresa, sem links ou URLs.** Use o formato '>>>' para a lista. Depois da lista, pergunte EXATAMENTE: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
-
-    ETAPA 3: Após o usuário responder à pergunta sobre os exemplos, sua terceira e última resposta deve ser o HTML para o botão de ação. Responda APENAS com o seguinte código HTML, sem nenhum texto adicional: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
-    
-    **REGRA FINAL: Após você ter respondido com o código HTML da Etapa 3, a conversa terminou. Se o usuário escrever qualquer outra coisa, responda APENAS com a seguinte frase: "Para prosseguir com sua ideia, por favor, clique no botão 'Iniciar Projeto' acima ou utilize o formulário de contato no final da página. Nossa equipe de especialistas está pronta para ajudar!"**
-    `;
-
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ message: 'Apenas o método POST é permitido.' });
@@ -51,12 +39,6 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Chave de API da DeepSeek não configurada no servidor.' });
   }
 
-  // Garante que o prompt do sistema seja sempre a primeira mensagem
-  // Isso evita que o prompt seja perdido em requisições subsequentes
-  if (history.length === 0 || history[0].parts[0].text !== complexSystemPrompt) {
-      history.unshift({ role: 'user', parts: [{ text: complexSystemPrompt }] });
-  }
-
   const modelName = "deepseek-chat";
   const apiUrl = "https://api.deepseek.com/chat/completions";
 
@@ -69,7 +51,7 @@ export default async function handler(request, response) {
     const payload = {
         model: modelName,
         messages: messages,
-        max_tokens: 250 
+        max_tokens: 150
     };
     
     const deepseekResponse = await fetch(apiUrl, {

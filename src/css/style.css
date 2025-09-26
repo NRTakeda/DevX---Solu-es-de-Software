@@ -454,4 +454,47 @@ button:disabled {
     to { transform: rotate(360deg); }
 }
 
+.character-counter {
+    text-align: right;
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+    padding: 2px 8px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
 
+.character-counter.warning {
+    color: #ff9800;
+    background: #fff3e0;
+}
+
+.character-counter.error {
+    color: #f44336;
+    background: #ffebee;
+    font-weight: bold;
+}
+
+.chat-input-container {
+    position: relative;
+    margin-top: 10px;
+}
+
+#chat-input {
+    width: 100%;
+    resize: vertical;
+    min-height: 40px;
+    max-height: 120px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+}
+
+.limit-message {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+    padding: 10px;
+    margin: 10px 0;
+}

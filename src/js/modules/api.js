@@ -102,19 +102,19 @@ function initAIChatWidget() {
     const messagesContainer = document.getElementById('chat-messages');
 
     let conversationHistory = [];
+    let userMessageCount = 0;
+    const MAX_USER_MESSAGES = 7;
+    const MAX_USER_CHARACTERS = 500;
 
-    const complexSystemPrompt = `Você é o "DevX Consultant", um assistente conversacional da agência de software DevX. Seu objetivo é guiar o usuário em 3 etapas. Seja sempre breve e amigável.
+    const systemPrompt = `Você é o "DevX Consultant", um assistente conversacional da agência de software DevX. Seu objetivo é guiar o usuário em 3 etapas. Seja sempre breve e amigável.
 
     ETAPA 1: Quando o usuário apresentar a ideia inicial, sua primeira resposta deve ser uma breve análise da oportunidade de negócio (2-3 frases). Termine EXATAMENTE com a frase: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
 
-    ETAPA 2: Na sua segunda resposta, liste 3 exemplos de sites reais do segmento do cliente. Use o formato '>>>' para a lista. Depois da lista, pergunte EXATAMENTE: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
+    ETAPA 2: Na sua segunda resposta, liste 3 exemplos de sites reais do segmento do cliente. **Mostre apenas o nome da empresa, sem links ou URLs.** Use o formato '>>>' para a lista. Depois da lista, pergunte EXATAMENTE: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
 
     ETAPA 3: Após o usuário responder à pergunta sobre os exemplos, sua terceira e última resposta deve ser o HTML para o botão de ação. Responda APENAS com o seguinte código HTML, sem nenhum texto adicional: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
-    `;
-
-    const simpleSystemPrompt = `Você é um assistente de IA para testes. Siga 3 etapas: Etapa 1: Responda "Analisando...". Etapa 2: Responda "Exemplos: site1, site2, site3. Qual prefere?". Etapa 3: Responda APENAS com este HTML: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'`;
-
-    const systemPrompt = import.meta.env.DEV ? simpleSystemPrompt : complexSystemPrompt;
+    
+    **REGRA FINAL: Após você ter respondido com o código HTML da Etapa 3, a conversa terminou. Se o usuário escrever qualquer outra coisa, responda APENAS com a seguinte frase: "Para prosseguir com sua ideia, por favor, clique no botão 'Iniciar Projeto' acima ou utilize o formulário de contato no final da página. Nossa equipe de especialistas está pronta para ajudar!"**`;
 
     function appendMessage(text, sender, isHtml = false) {
         const messageDiv = document.createElement('div');
@@ -131,6 +131,70 @@ function initAIChatWidget() {
         return messageDiv;
     }
 
+    function initCharacterCounter() {
+        // Remove contador existente se houver
+        const existingCounter = document.getElementById('char-count');
+        if (existingCounter) {
+            existingCounter.remove();
+        }
+
+        const charCount = document.createElement('div');
+        charCount.id = 'char-count';
+        charCount.className = 'character-counter';
+        charCount.innerHTML = '<span id="char-count-number">0</span>/500';
+        
+        // Insere o contador após o textarea
+        if (chatInput.parentNode) {
+            chatInput.parentNode.insertBefore(charCount, chatInput.nextSibling);
+        }
+
+        chatInput.addEventListener('input', () => {
+            const length = chatInput.value.length;
+            const charNumber = document.getElementById('char-count-number');
+            
+            if (charNumber) {
+                charNumber.textContent = length;
+                
+                // Feedback visual
+                charCount.className = 'character-counter';
+                if (length > 400) charCount.classList.add('warning');
+                if (length >= 500) charCount.classList.add('error');
+            }
+        });
+    }
+
+    function updateChatInterface() {
+        // Desabilita chat se atingiu o limite
+        if (userMessageCount >= MAX_USER_MESSAGES) {
+            chatInput.disabled = true;
+            chatSendButton.disabled = true;
+            chatInput.placeholder = 'Limite de mensagens atingido';
+            
+            // Adiciona mensagem final se não tiver sido adicionada
+            const existingLimitMessage = messagesContainer.querySelector('.limit-message');
+            if (!existingLimitMessage) {
+                const limitMessage = document.createElement('div');
+                limitMessage.className = 'limit-message ai-message';
+                limitMessage.innerHTML = `
+                    <p>✅ Você atingiu o limite de ${MAX_USER_MESSAGES} mensagens.</p>
+                    <p>Para continuar, clique no botão "Iniciar Projeto" ou utilize o formulário de contato.</p>
+                `;
+                messagesContainer.appendChild(limitMessage);
+            }
+        } else {
+            chatInput.disabled = false;
+            chatSendButton.disabled = false;
+            chatInput.placeholder = 'Digite sua mensagem...';
+        }
+
+        // Atualiza o contador de caracteres
+        const currentLength = chatInput.value.length;
+        const charNumber = document.getElementById('char-count-number');
+        if (charNumber) {
+            charNumber.textContent = currentLength;
+        }
+    }
+
     async function getAiResponse() {
         chatInput.disabled = true;
         chatSendButton.disabled = true;
@@ -142,47 +206,94 @@ function initAIChatWidget() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ history: conversationHistory })
             });
+            
             if (!response.ok) {
                 const errorResult = await response.json().catch(() => null);
                 throw new Error(errorResult?.message || `Erro do servidor: ${response.statusText}`);
             }
+            
             const result = await response.json();
-
             typingIndicator.remove();
-            appendMessage(result.result, 'ai', result.result.includes('<button'));
+            
+            // Verifica se é a mensagem final com o botão
+            const isFinalMessage = result.result.includes('<button');
+            appendMessage(result.result, 'ai', isFinalMessage);
+            
             conversationHistory.push({ role: 'model', parts: [{ text: result.result }] });
+
+            // Se for mensagem final, conta como uma "resposta" que encerra o ciclo
+            if (isFinalMessage) {
+                userMessageCount = MAX_USER_MESSAGES;
+                updateChatInterface();
+            }
 
         } catch (error) {
             typingIndicator.remove();
             appendMessage(`Desculpe, ocorreu um erro: ${error.message}`, 'ai');
         } finally {
-            chatInput.disabled = false;
-            chatSendButton.disabled = false;
+            updateChatInterface();
             chatInput.focus();
         }
+    }
+
+    function startNewConversation() {
+        messagesContainer.innerHTML = '';
+        appendMessage('Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?', 'ai');
+        
+        // Reinicia contadores
+        conversationHistory = [
+            { role: 'user', parts: [{ text: systemPrompt }] },
+            { role: 'model', parts: [{ text: 'Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?' }] }
+        ];
+        userMessageCount = 0;
+        updateChatInterface();
+        
+        // Inicializa contador de caracteres
+        setTimeout(initCharacterCounter, 100);
     }
 
     fab.addEventListener('click', () => {
         chatWindow.classList.toggle('open');
         if (chatWindow.classList.contains('open')) {
-            messagesContainer.innerHTML = '';
-            appendMessage('Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?', 'ai');
-            conversationHistory = [
-                { role: 'user', parts: [{ text: systemPrompt }] },
-                { role: 'model', parts: [{ text: 'Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?' }] }
-            ];
+            startNewConversation();
+        } else {
+            // Remove contador quando fecha o chat
+            const charCount = document.getElementById('char-count');
+            if (charCount) {
+                charCount.remove();
+            }
         }
     });
     
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const messageText = chatInput.value.trim();
+        let messageText = chatInput.value.trim();
+        
+        // Verifica limite de mensagens primeiro
+        if (userMessageCount >= MAX_USER_MESSAGES) {
+            showErrorToast(`Limite de ${MAX_USER_MESSAGES} mensagens atingido.`);
+            return;
+        }
+        
+        // Verifica limite de caracteres (APENAS PARA USUÁRIO)
+        if (messageText.length > MAX_USER_CHARACTERS) {
+            showErrorToast(`Mensagem muito longa. Por favor, seja mais conciso (máximo ${MAX_USER_CHARACTERS} caracteres).`);
+            messageText = messageText.substring(0, MAX_USER_CHARACTERS);
+        }
+        
         if (messageText.length === 0) return;
+
+        // Atualiza o campo com texto cortado (se necessário)
+        if (messageText.length !== chatInput.value.trim().length) {
+            chatInput.value = messageText;
+        }
 
         appendMessage(messageText, 'user');
         conversationHistory.push({ role: 'user', parts: [{ text: messageText }] });
+        userMessageCount++;
         chatInput.value = '';
 
+        updateChatInterface();
         await getAiResponse();
     });
 
