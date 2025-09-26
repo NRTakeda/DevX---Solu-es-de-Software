@@ -5,7 +5,7 @@ export async function initAdmin() {
     const projectsTableBody = document.getElementById('projects-table-body');
     if (!projectsTableBody) return;
 
-    // 1. Proteger a página: verificar se o usuário é admin
+    // 1. Proteger a página (código existente, está correto)
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         window.location.href = '/login.html';
@@ -38,20 +38,22 @@ export async function initAdmin() {
     const rejectProjectIdInput = document.getElementById('reject-project-id');
     const rejectProjectNameInput = document.getElementById('reject-project-name');
     const rejectMessageTextarea = document.getElementById('reject-message');
-    const rejectClientEmailInput = document.getElementById('reject-client-email');
 
     // 2. Função para buscar e renderizar projetos
     async function renderProjects() {
         try {
+            // CORREÇÃO 1: Adicionado filtro .not('status', 'eq', 'Rejeitado')
+            // para não exibir projetos já rejeitados.
             const { data: projects, error: projectsError } = await supabase
                 .from('projects')
                 .select('id, name, status, client_id, profiles ( id, username, full_name )')
+                .not('status', 'eq', 'Rejeitado')
                 .order('created_at', { ascending: false });
 
             if (projectsError) throw projectsError;
 
             if (!projects || projects.length === 0) {
-                projectsTableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center">Nenhum projeto encontrado.</td></tr>`;
+                projectsTableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center">Nenhum projeto ativo encontrado.</td></tr>`;
                 return;
             }
 
@@ -68,7 +70,6 @@ export async function initAdmin() {
                         <span class="px-2 py-1 rounded-full text-xs ${
                             project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' :
                             project.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
-                            project.status === 'Rejeitado' ? 'bg-red-100 text-red-800' :
                             'bg-gray-100 text-gray-800'
                         }">${project.status || 'N/A'}</span>
                     </td>
@@ -99,7 +100,11 @@ export async function initAdmin() {
             const button = e.target;
             rejectProjectIdInput.value = button.dataset.id;
             rejectProjectNameInput.value = button.dataset.name;
-            rejectMessageTextarea.value = `Prezado cliente,\n\nAgradecemos o interesse em nosso trabalho. Após uma análise do seu projeto "${button.dataset.name}", informamos que não poderemos dar continuidade no momento devido a:\n\n• [Especifique o motivo aqui]\n\nAtenciosamente,\nEquipe DevX`;
+            
+            // CORREÇÃO 2: A mensagem padrão agora é apenas o motivo,
+            // não o template completo do e-mail.
+            rejectMessageTextarea.value = `O projeto não se alinha com nossas especialidades atuais.`;
+            
             rejectModal.classList.remove('hidden');
         }
     });
