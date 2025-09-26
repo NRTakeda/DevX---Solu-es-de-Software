@@ -38,7 +38,18 @@ function createEditProjectModal() {
     return document.getElementById('edit-project-modal');
 }
 
-export async function initDashboard(user) {
+// CORREÇÃO: Removido o parâmetro "user". A função agora busca o usuário por conta própria.
+export async function initDashboard() {
+    // A guarda de entrada verifica se estamos na página correta antes de fazer qualquer coisa.
+    if (!document.getElementById('dashboard-sidebar')) return;
+
+    // ADICIONADO: Busca do usuário e guarda de rota, tornando o módulo autossuficiente.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        window.location.href = '/login.html';
+        return;
+    }
+
     const pendingDescription = sessionStorage.getItem('pendingProjectDescription');
     if (pendingDescription) { await createPendingProject(pendingDescription, user.id); }
     
@@ -107,7 +118,6 @@ export async function initDashboard(user) {
             return; 
         }
 
-        // CORREÇÃO 2: Atualiza o contador para remover o "Carregando..."
         if(projectsCountSpan) projectsCountSpan.textContent = `${allProjects.length} projeto(s) encontrado(s)`;
         
         projectsListDiv.innerHTML = '';
@@ -118,8 +128,6 @@ export async function initDashboard(user) {
             allProjects.forEach(project => {
                 const projectCard = document.createElement('div');
                 projectCard.className = 'card p-6';
-                
-                // CORREÇÃO 1: HTML completo do card restaurado.
                 projectCard.innerHTML = `
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex-grow">
