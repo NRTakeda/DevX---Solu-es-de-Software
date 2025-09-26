@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+// O schema de entrada do front-end não muda
 const requestSchema = z.object({
   history: z.array(
     z.object({
@@ -19,45 +20,60 @@ export default async function handler(request, response) {
     return response.status(400).json({ message: 'Estrutura do histórico inválida.' });
   }
 
+  // REVISADO: Buscando a nova chave de API
   const { history } = validation.data;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    return response.status(500).json({ message: 'Chave de API não configurada no servidor.' });
+    return response.status(500).json({ message: 'Chave de API da DeepSeek não configurada no servidor.' });
   }
 
-  // REVISADO: Trocado para o modelo estável e amplamente disponível 'gemini-pro'.
-  const modelName = "gemini-pro";
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  // REVISADO: Endpoint e modelo da DeepSeek
+  const modelName = "deepseek-chat";
+  const apiUrl = "https://api.deepseek.com/chat/completions";
 
   try {
-    const payload = { contents: history };
+    // REVISADO: O formato do corpo da requisição (payload) da DeepSeek
+    // é diferente do Google. Precisamos transformar os dados.
+    const messages = history.map(item => ({
+        role: item.role === 'model' ? 'assistant' : 'user', // DeepSeek usa 'assistant' em vez de 'model'
+        content: item.parts[0].text
+    }));
+
+    const payload = {
+        model: modelName,
+        messages: messages,
+    };
     
-    const geminiResponse = await fetch(apiUrl, {
+    // REVISADO: A chamada fetch agora usa o cabeçalho "Authorization: Bearer"
+    const deepseekResponse = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
         body: JSON.stringify(payload)
     });
 
-    if (!geminiResponse.ok) {
-        const errorBody = await geminiResponse.json();
-        console.error("Erro detalhado do Google:", errorBody);
-        throw new Error(`Erro na API do Gemini: ${geminiResponse.statusText}`);
+    if (!deepseekResponse.ok) {
+        const errorBody = await deepseekResponse.json();
+        console.error("Erro detalhado da DeepSeek:", errorBody);
+        throw new Error(`Erro na API da DeepSeek: ${deepseekResponse.statusText}`);
     }
 
-    const result = await geminiResponse.json();
+    const result = await deepseekResponse.json();
     
-    // Adicionando uma verificação extra para casos onde a IA pode se recusar a responder
-    if (!result.candidates || result.candidates.length === 0 || !result.candidates[0].content) {
-        console.warn("Resposta da IA bloqueada ou vazia:", result);
-        throw new Error("A IA não forneceu uma resposta. Tente reformular sua pergunta.");
+    // REVISADO: O caminho para o texto da resposta é diferente na DeepSeek
+    if (!result.choices || result.choices.length === 0 || !result.choices[0].message) {
+        console.warn("Resposta da IA da DeepSeek veio em formato inesperado:", result);
+        throw new Error("A IA não forneceu uma resposta.");
     }
 
-    const text = result.candidates[0].content.parts[0].text;
+    const text = result.choices[0].message.content;
 
     return response.status(200).json({ result: text });
 
   } catch (error) {
-    console.error("Erro na API do Gemini:", error);
+    console.error("Erro na API da DeepSeek:", error);
     return response.status(500).json({ message: error.message || 'Ocorreu um erro ao processar sua solicitação.' });
   }
 }
