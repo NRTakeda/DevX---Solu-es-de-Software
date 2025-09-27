@@ -17,7 +17,8 @@
             <h2 class="text-3xl font-bold mb-8">Painel Administrativo de Projetos</h2>
             <div class="card p-8">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <!-- TABELA (Desktop e telas >= md) -->
+                    <table class="hidden md:table w-full text-left">
                         <thead>
                             <tr class="border-b dark:border-gray-700">
                                 <th class="p-4">Nome do Projeto</th>
@@ -31,11 +32,16 @@
                             <!-- Conteúdo dinâmico via JavaScript -->
                         </tbody>
                     </table>
+
+                    <!-- CARDS (Mobile: telas < md) -->
+                    <div class="md:hidden space-y-4 mt-4" id="projects-cards">
+                        <!-- Conteúdo dinâmico via JavaScript -->
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Modal de Edição (agora com campo de descrição) -->
+        <!-- Modal de Edição -->
         <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
             <div class="card p-8 w-full max-w-lg">
                 <h3 class="text-2xl font-bold mb-4">Editar Projeto</h3>
