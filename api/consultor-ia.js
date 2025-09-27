@@ -1,13 +1,12 @@
 import { z } from 'zod';
-import { RateLimiterRedis } from 'rate-limiter-flexible-redis';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from '@vercel/kv';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 // --- CONFIGURAÇÃO DO RATE LIMITER COM VERCEL KV (REDIS) ---
 
-// CORREÇÃO: Usando as variáveis de ambiente corretas para o cliente HTTP do Vercel KV
 const redisClient = createClient({
-  url: process.env.KV_REST_API_URL,
+  url: process.env.KV_URL,
   token: process.env.KV_REST_API_TOKEN,
 });
 
@@ -16,14 +15,12 @@ const rateLimiterOptions = {
   keyPrefix: 'ia_chat_limiter',
 };
 
-// Limiter para usuários anônimos (identificados por IP)
 const limiterAnon = new RateLimiterRedis({
   ...rateLimiterOptions,
   points: 2,
   duration: 60 * 60 * 24, // 24 horas
 });
 
-// Limiter para usuários autenticados (identificados por User ID)
 const limiterAuth = new RateLimiterRedis({
   ...rateLimiterOptions,
   points: 30,
