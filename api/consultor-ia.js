@@ -2,7 +2,7 @@ import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-// --- CONFIGURAÇÃO DO RATE LIMITER (VERSÃO SIMPLIFICADA) ---
+// --- CONFIGURAÇÃO DO RATE LIMITER (VERSÃO SIMPLIFICADA "IN-MEMORY") ---
 
 const applyMiddleware = middleware => (request, response) =>
   new Promise((resolve, reject) => {
@@ -16,7 +16,7 @@ const limiterAnon = rateLimit({
 	windowMs: 24 * 60 * 60 * 1000, // 24 horas
 	max: 2, // 2 conversas (chamadas à API) por dia
 	message: { message: 'Limite de uso para visitantes atingido. Por favor, crie uma conta ou tente novamente amanhã.' },
-    standardHeaders: true,
+    standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator: (request) => {
         return request.headers['x-forwarded-for']?.split(',').shift() 
@@ -30,7 +30,7 @@ const limiterAuth = rateLimit({
 	windowMs: 3 * 60 * 1000, // 3 minutos
 	max: 30, // 30 mensagens a cada 3 minutos
 	message: { message: 'Limite de uso atingido. Tente novamente em alguns minutos.' },
-    standardHeaders: true,
+    standardHeaders: 'draft-7',
     legacyHeaders: false,
     // A chave será o ID do usuário, que definiremos dinamicamente
 });
@@ -66,7 +66,11 @@ const refinedSchema = baseSchema.refine(data => {
     return true;
 }, { message: 'Sua mensagem é muito longa. Por favor, seja mais conciso.' });
 
-const complexSystemPrompt = `Você é o "DevX Consultant"...`; // Seu prompt completo aqui
+const complexSystemPrompt = `Você é o "DevX Consultant". Guie o usuário em 3 etapas, de forma breve.
+ETAPA 1: Ao receber a ideia, faça uma análise de negócio de 2 frases e termine com a frase exata: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
+ETAPA 2: Na sua segunda resposta, liste 3 nomes de empresas reais do segmento, sem URLs, usando '>>>' na lista. Termine com a pergunta exata: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
+ETAPA 3: Após a resposta do usuário, responda APENAS com este HTML: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
+REGRA FINAL: Após a Etapa 3, se o usuário continuar, responda APENAS: "Para prosseguir com sua ideia, por favor, clique no botão 'Iniciar Projeto' acima ou utilize o formulário de contato no final da página. Nossa equipe de especialistas está pronta para ajudar!"`;
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
