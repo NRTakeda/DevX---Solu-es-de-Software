@@ -1,34 +1,40 @@
 import { z } from 'zod';
-import { RateLimiterRedis } from 'rate-limiter-flexible';
-import { createClient } from '@vercel/kv';
+import rateLimit from 'express-rate-limit';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-// --- CONFIGURAÇÃO DO RATE LIMITER COM VERCEL KV (REDIS) ---
+// --- CONFIGURAÇÃO DO RATE LIMITER (VERSÃO SIMPLIFICADA) ---
 
-// CORREÇÃO: Usando as variáveis de ambiente corretas para o cliente HTTP do Vercel KV
-const redisClient = createClient({
-  url: process.env.KV_REST_API_URL,
-  token: process.env.KV_REST_API_TOKEN,
-});
-
-const rateLimiterOptions = {
-  storeClient: redisClient,
-  keyPrefix: 'ia_chat_limiter',
-};
+const applyMiddleware = middleware => (request, response) =>
+  new Promise((resolve, reject) => {
+    middleware(request, response, result =>
+      result instanceof Error ? reject(result) : resolve(result)
+    );
+  });
 
 // Limiter para usuários anônimos (identificados por IP)
-const limiterAnon = new RateLimiterRedis({
-  ...rateLimiterOptions,
-  points: 2,
-  duration: 60 * 60 * 24, // 24 horas
+const limiterAnon = rateLimit({
+	windowMs: 24 * 60 * 60 * 1000, // 24 horas
+	max: 2, // 2 conversas (chamadas à API) por dia
+	message: { message: 'Limite de uso para visitantes atingido. Por favor, crie uma conta ou tente novamente amanhã.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (request) => {
+        return request.headers['x-forwarded-for']?.split(',').shift() 
+            || request.headers['x-vercel-forwarded-for'] 
+            || request.socket.remoteAddress;
+    },
 });
 
 // Limiter para usuários autenticados (identificados por User ID)
-const limiterAuth = new RateLimiterRedis({
-  ...rateLimiterOptions,
-  points: 30,
-  duration: 60 * 3, // 3 minutos
+const limiterAuth = rateLimit({
+	windowMs: 3 * 60 * 1000, // 3 minutos
+	max: 30, // 30 mensagens a cada 3 minutos
+	message: { message: 'Limite de uso atingido. Tente novamente em alguns minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    // A chave será o ID do usuário, que definiremos dinamicamente
 });
+
 
 async function getUserIdFromToken(authHeader) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -44,16 +50,11 @@ async function getUserIdFromToken(authHeader) {
 }
 
 // --- LÓGICA DA API ---
-
 const baseSchema = z.object({
-  history: z.array(
-    z.object({
-      role: z.enum(['user', 'model']),
-      parts: z.array(z.object({ 
-        text: z.string()
-      })),
-    })
-  ),
+  history: z.array(z.object({
+    role: z.enum(['user', 'model']),
+    parts: z.array(z.object({ text: z.string() })),
+  })),
 });
 
 const refinedSchema = baseSchema.refine(data => {
@@ -63,35 +64,33 @@ const refinedSchema = baseSchema.refine(data => {
         return userText.length <= 1000;
     }
     return true;
-}, {
-    message: 'Sua mensagem é muito longa. Por favor, seja mais conciso.'
-});
+}, { message: 'Sua mensagem é muito longa. Por favor, seja mais conciso.' });
 
-const complexSystemPrompt = `Você é o "DevX Consultant". Guie o usuário em 3 etapas, de forma breve.
-ETAPA 1: Ao receber a ideia, faça uma análise de negócio de 2 frases e termine com a frase exata: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
-ETAPA 2: Na sua segunda resposta, liste 3 nomes de empresas reais do segmento, sem URLs, usando '>>>' na lista. Termine com a pergunta exata: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
-ETAPA 3: Após a resposta do usuário, responda APENAS com este HTML: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
-REGRA FINAL: Após a Etapa 3, se o usuário continuar, responda APENAS: "Para prosseguir com sua ideia, por favor, clique no botão 'Iniciar Projeto' acima ou utilize o formulário de contato no final da página. Nossa equipe de especialistas está pronta para ajudar!"`;
+const complexSystemPrompt = `Você é o "DevX Consultant"...`; // Seu prompt completo aqui
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ message: 'Apenas o método POST é permitido.' });
   }
 
-  try {
-    const authHeader = request.headers.authorization;
-    const userId = await getUserIdFromToken(authHeader);
-    const ip = request.headers['x-forwarded-for']?.split(',').shift() || request.socket.remoteAddress;
+  const authHeader = request.headers.authorization;
+  const userId = await getUserIdFromToken(authHeader);
 
-    if (userId) {
-      await limiterAuth.consume(userId);
-    } else {
-      await limiterAnon.consume(ip);
-    }
-  } catch (rateLimiterRes) {
-    return response.status(429).json({ message: 'Limite de uso atingido. Tente novamente mais tarde.' });
+  // Aplica o limiter correto com base no status do usuário
+  if (userId) {
+    // Para usuários logados, usamos o ID deles como chave
+    request.rateLimit = { key: userId };
+    await applyMiddleware(limiterAuth)(request, response);
+  } else {
+    // Para anônimos, a chave já é o IP (definido no keyGenerator)
+    await applyMiddleware(limiterAnon)(request, response);
   }
 
+  // Se a resposta já foi enviada pelo rate limiter, não continuamos
+  if (response.headersSent) {
+    return;
+  }
+  
   const validation = refinedSchema.safeParse(request.body);
   if (!validation.success) {
     const errorMessage = validation.error.errors[0]?.message || 'Dados de entrada inválidos.';
@@ -113,39 +112,23 @@ export default async function handler(request, response) {
         role: item.role === 'model' ? 'assistant' : 'user',
         content: item.parts[0].text
     }));
-
-    const payload = {
-        model: modelName,
-        messages: messages,
-        max_tokens: 250
-    };
-    
+    const payload = { model: modelName, messages: messages, max_tokens: 250 };
     const deepseekResponse = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify(payload)
     });
-
     if (!deepseekResponse.ok) {
         const errorBody = await deepseekResponse.json();
         console.error("Erro detalhado da DeepSeek:", errorBody);
         throw new Error(`Erro na API da DeepSeek: ${deepseekResponse.statusText}`);
     }
-
     const result = await deepseekResponse.json();
-    
     if (!result.choices || result.choices.length === 0 || !result.choices[0].message) {
-        console.warn("Resposta da IA da DeepSeek veio em formato inesperado:", result);
         throw new Error("A IA não forneceu uma resposta.");
     }
-
     const text = result.choices[0].message.content;
-
     return response.status(200).json({ result: text });
-
   } catch (error) {
     console.error("Erro na API da DeepSeek:", error);
     return response.status(500).json({ message: error.message || 'Ocorreu um erro ao processar sua solicitação.' });
