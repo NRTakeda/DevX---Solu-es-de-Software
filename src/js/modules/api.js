@@ -141,7 +141,7 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
         const charCount = document.createElement('div');
         charCount.id = 'char-count';
         charCount.className = 'character-counter';
-        charCount.innerHTML = '<span id="char-count-number">0</span>/250';
+        charCount.innerHTML = '<span id="char-count-number">0</span>/150';
         
         // Insere o contador após o textarea
         if (chatInput.parentNode) {
