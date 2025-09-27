@@ -104,10 +104,14 @@ function initAIChatWidget() {
     let conversationHistory = [];
     let userMessageCount = 0;
 
-    // 🔑 Definição dos limites diferentes
-    const isLoggedIn = !!localStorage.getItem("authToken"); // Ajuste conforme sua lógica de login
+    // Limites diferentes
+    const isLoggedIn = !!localStorage.getItem("authToken");
     const MAX_USER_MESSAGES = isLoggedIn ? 7 : 4;  
     const MAX_USER_CHARACTERS = 150;
+    const RESET_INTERVAL = isLoggedIn ? 5 * 60 * 1000 : 3 * 60 * 60 * 1000; // 5min logado, 3h visitante
+
+    // Elemento para aviso de caracteres
+    let charWarning;
 
     function appendMessage(text, sender, isHtml = false) {
         const messageDiv = document.createElement('div');
@@ -137,12 +141,28 @@ function initAIChatWidget() {
             chatInput.parentNode.insertBefore(charCount, chatInput.nextSibling);
         }
 
+        // Aviso de limite ultrapassado
+        charWarning = document.createElement('div');
+        charWarning.id = 'char-warning';
+        charWarning.className = 'char-warning';
+        charWarning.style.color = 'red';
+        charWarning.style.fontSize = '0.8rem';
+        charWarning.style.display = 'none';
+        charWarning.textContent = `Máximo de ${MAX_USER_CHARACTERS} caracteres por mensagem`;
+        chatInput.parentNode.insertBefore(charWarning, charCount.nextSibling);
+
         chatInput.addEventListener('input', () => {
             const length = chatInput.value.length;
             const charNumber = document.getElementById('char-count-number');
             if (charNumber) {
                 charNumber.textContent = length;
-                charCount.classList.toggle('error', length > MAX_USER_CHARACTERS);
+                if (length > MAX_USER_CHARACTERS) {
+                    charCount.classList.add('error');
+                    charWarning.style.display = 'block';
+                } else {
+                    charCount.classList.remove('error');
+                    charWarning.style.display = 'none';
+                }
             }
         });
     }
@@ -211,12 +231,18 @@ function initAIChatWidget() {
 
     function startNewConversation() {
         messagesContainer.innerHTML = '';
-        appendMessage('Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?', 'ai');
+        appendMessage('Olá! Vamos transformar sua ideia? Me conta qual é.', 'ai');
         
         conversationHistory = [];
         userMessageCount = 0;
         updateChatInterface();
         setTimeout(initCharacterCounter, 100);
+
+        // Reset automático após intervalo
+        setTimeout(() => {
+            userMessageCount = 0;
+            updateChatInterface();
+        }, RESET_INTERVAL);
     }
 
     fab.addEventListener('click', () => {
@@ -226,6 +252,8 @@ function initAIChatWidget() {
         } else {
             const charCount = document.getElementById('char-count');
             if (charCount) charCount.remove();
+            const warning = document.getElementById('char-warning');
+            if (warning) warning.remove();
         }
     });
     
