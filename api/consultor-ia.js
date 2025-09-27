@@ -5,13 +5,16 @@ import { createClient } from '@supabase/supabase-js';
 
 // --- CONFIGURAÇÃO DO RATE LIMITER COM SUPABASE (POSTGRES) ---
 
+// Construindo a conexão a partir das variáveis individuais da integração da Vercel.
 const pool = new Pool({
-  // REVISÃO FINAL: Usando a URL do Prisma fornecida pela integração.
-  // Esta é a nossa tentativa final para resolver o problema de conexão.
-  connectionString: process.env.POSTGRES_PRISMA_URL,
+  host: process.env.POSTGRES_HOST,
+  port: 5432,
+  user: process.env.POSTGRES_USER,
+  password: process.env.POSTGRES_PASSWORD,
+  database: process.env.POSTGRES_DATABASE,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
 const rateLimiterOptions = {
@@ -24,16 +27,17 @@ const rateLimiterOptions = {
 const limiterAnon = new RateLimiterPostgres({
   ...rateLimiterOptions,
   points: 2,
-  duration: 60 * 60 * 24,
+  duration: 60 * 60 * 24, // 24 horas
 });
 
 // Limiter para usuários autenticados (identificados por User ID)
 const limiterAuth = new RateLimiterPostgres({
   ...rateLimiterOptions,
   points: 30,
-  duration: 60 * 3,
+  duration: 60 * 3, // 3 minutos
 });
 
+// Função helper para verificar o JWT do Supabase de forma segura
 async function getUserIdFromToken(authHeader) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
     const token = authHeader.split(' ')[1];
@@ -48,7 +52,6 @@ async function getUserIdFromToken(authHeader) {
 }
 
 // --- LÓGICA DA API ---
-// (O restante do arquivo permanece o mesmo)
 
 const baseSchema = z.object({
   history: z.array(
@@ -72,13 +75,18 @@ const refinedSchema = baseSchema.refine(data => {
     message: 'Sua mensagem é muito longa. Por favor, seja mais conciso.'
 });
 
-const complexSystemPrompt = `Você é o "DevX Consultant"...`; // Seu prompt completo aqui
+const complexSystemPrompt = `Você é o "DevX Consultant". Guie o usuário em 3 etapas, de forma breve.
+ETAPA 1: Ao receber a ideia, faça uma análise de negócio de 2 frases e termine com a frase exata: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
+ETAPA 2: Na sua segunda resposta, liste 3 nomes de empresas reais do segmento, sem URLs, usando '>>>' na lista. Termine com a pergunta exata: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
+ETAPA 3: Após a resposta do usuário, responda APENAS com este HTML: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
+REGRA FINAL: Após a Etapa 3, se o usuário continuar, responda APENAS: "Para prosseguir com sua ideia, por favor, clique no botão 'Iniciar Projeto' acima ou utilize o formulário de contato no final da página. Nossa equipe de especialistas está pronta para ajudar!"`;
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ message: 'Apenas o método POST é permitido.' });
   }
 
+  // Aplicação do Rate Limit
   try {
     const authHeader = request.headers.authorization;
     const userId = await getUserIdFromToken(authHeader);
