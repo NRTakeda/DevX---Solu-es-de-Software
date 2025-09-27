@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
+    "@vercel/kv": "^3.0.0",
     "aos": "^2.3.4",
     "dompurify": "^3.2.7",
     "express-rate-limit": "^8.1.0",

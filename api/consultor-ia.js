@@ -1,48 +1,38 @@
 import { z } from 'zod';
-import { RateLimiterPostgres } from 'rate-limiter-flexible';
-import { Pool } from 'pg';
-import { createClient } from '@supabase/supabase-js';
+// CORREÇÃO: A classe RateLimiterRedis vem do pacote principal 'rate-limiter-flexible'
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { createClient } from '@vercel/kv';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-// --- CONFIGURAÇÃO DO RATE LIMITER COM SUPABASE (POSTGRES) ---
+// --- CONFIGURAÇÃO DO RATE LIMITER COM VERCEL KV (REDIS) ---
 
-// Construindo a conexão a partir das variáveis individuais da integração da Vercel.
-const pool = new Pool({
-  host: process.env.POSTGRES_HOST,
-  port: 5432,
-  user: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_DATABASE,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+const redisClient = createClient({
+  url: process.env.KV_URL,
+  token: process.env.KV_REST_API_TOKEN,
 });
 
 const rateLimiterOptions = {
-  storeClient: pool,
-  tableName: 'rate_limits',
+  storeClient: redisClient,
   keyPrefix: 'ia_chat_limiter',
 };
 
-// Limiter para usuários anônimos (identificados por IP)
-const limiterAnon = new RateLimiterPostgres({
+const limiterAnon = new RateLimiterRedis({
   ...rateLimiterOptions,
   points: 2,
-  duration: 60 * 60 * 24, // 24 horas
+  duration: 60 * 60 * 24,
 });
 
-// Limiter para usuários autenticados (identificados por User ID)
-const limiterAuth = new RateLimiterPostgres({
+const limiterAuth = new RateLimiterRedis({
   ...rateLimiterOptions,
   points: 30,
-  duration: 60 * 3, // 3 minutos
+  duration: 60 * 3,
 });
 
-// Função helper para verificar o JWT do Supabase de forma segura
 async function getUserIdFromToken(authHeader) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
     const token = authHeader.split(' ')[1];
     try {
-        const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
+        const supabase = createSupabaseClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
         const { data: { user } } = await supabase.auth.getUser(token);
         return user ? user.id : null;
     } catch (error) {
@@ -86,7 +76,6 @@ export default async function handler(request, response) {
     return response.status(405).json({ message: 'Apenas o método POST é permitido.' });
   }
 
-  // Aplicação do Rate Limit
   try {
     const authHeader = request.headers.authorization;
     const userId = await getUserIdFromToken(authHeader);
