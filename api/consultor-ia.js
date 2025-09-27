@@ -1,12 +1,59 @@
 import { z } from 'zod';
+import { RateLimiterPostgres } from 'rate-limiter-flexible';
+import { Pool } from 'pg';
+import { createClient } from '@supabase/supabase-js';
+
+// --- CONFIGURAÇÃO DO RATE LIMITER COM SUPABASE (POSTGRES) ---
+
+// Cria uma pool de conexão usando a variável de ambiente do banco
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Necessário para a Vercel se conectar ao Supabase
+  }
+});
+
+const rateLimiterOptions = {
+  storeClient: pool,
+  tableName: 'rate_limits',
+  keyPrefix: 'ia_chat_limiter', // Prefixo para evitar conflito de chaves
+};
+
+// Limiter para usuários anônimos (identificados por IP)
+const limiterAnon = new RateLimiterPostgres({
+  ...rateLimiterOptions,
+  points: 2, // 2 chamadas à API (equivalente a 2 conversas no seu fluxo)
+  duration: 60 * 60 * 24, // por 24 horas (1 dia)
+});
+
+// Limiter para usuários autenticados (identificados por User ID)
+const limiterAuth = new RateLimiterPostgres({
+  ...rateLimiterOptions,
+  points: 30, // 30 requisições (mensagens)
+  duration: 60 * 3, // a cada 3 minutos
+});
+
+// Função helper para verificar o JWT do Supabase de forma segura
+async function getUserIdFromToken(authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    const token = authHeader.split(' ')[1];
+    try {
+        const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
+        const { data: { user } } = await supabase.auth.getUser(token);
+        return user ? user.id : null;
+    } catch (error) {
+        console.error("Erro ao validar token JWT:", error);
+        return null;
+    }
+}
+
+// --- LÓGICA DA API ---
 
 const baseSchema = z.object({
   history: z.array(
     z.object({
       role: z.enum(['user', 'model']),
-      parts: z.array(z.object({ 
-        text: z.string()
-      })),
+      parts: z.array(z.object({ text: z.string() })),
     })
   ),
 });
@@ -22,9 +69,30 @@ const refinedSchema = baseSchema.refine(data => {
     message: 'Sua mensagem é muito longa. Por favor, seja mais conciso.'
 });
 
+const complexSystemPrompt = `Você é o "DevX Consultant". Guie o usuário em 3 etapas, de forma breve.
+ETAPA 1: Ao receber a ideia, faça uma análise de negócio de 2 frases e termine com a frase exata: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
+ETAPA 2: Na sua segunda resposta, liste 3 nomes de empresas reais do segmento, sem URLs, usando '>>>' na lista. Termine com a pergunta exata: "Algum desses exemplos se alinha com o que você imaginou? Você pode me dizer o nome dele ou descrever melhor o que busca."
+ETAPA 3: Após a resposta do usuário, responda APENAS com este HTML: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
+REGRA FINAL: Após a Etapa 3, se o usuário continuar, responda APENAS: "Para prosseguir com sua ideia, por favor, clique no botão 'Iniciar Projeto' acima ou utilize o formulário de contato no final da página. Nossa equipe de especialistas está pronta para ajudar!"`;
+
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
     return response.status(405).json({ message: 'Apenas o método POST é permitido.' });
+  }
+
+  // Aplicação do Rate Limit
+  try {
+    const authHeader = request.headers.authorization;
+    const userId = await getUserIdFromToken(authHeader);
+    const ip = request.headers['x-forwarded-for']?.split(',').shift() || request.socket.remoteAddress;
+
+    if (userId) {
+      await limiterAuth.consume(userId);
+    } else {
+      await limiterAnon.consume(ip);
+    }
+  } catch (rateLimiterRes) {
+    return response.status(429).json({ message: 'Limite de uso atingido. Tente novamente mais tarde.' });
   }
 
   const validation = refinedSchema.safeParse(request.body);
@@ -39,11 +107,12 @@ export default async function handler(request, response) {
     return response.status(500).json({ message: 'Chave de API da DeepSeek não configurada no servidor.' });
   }
 
+  const fullHistory = [{ role: 'user', parts: [{ text: complexSystemPrompt }] }, ...history];
   const modelName = "deepseek-chat";
   const apiUrl = "https://api.deepseek.com/chat/completions";
 
   try {
-    const messages = history.map(item => ({
+    const messages = fullHistory.map(item => ({
         role: item.role === 'model' ? 'assistant' : 'user',
         content: item.parts[0].text
     }));
@@ -51,7 +120,7 @@ export default async function handler(request, response) {
     const payload = {
         model: modelName,
         messages: messages,
-        max_tokens: 150
+        max_tokens: 250
     };
     
     const deepseekResponse = await fetch(apiUrl, {

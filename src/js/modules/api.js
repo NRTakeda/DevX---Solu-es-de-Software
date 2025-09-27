@@ -106,16 +106,6 @@ function initAIChatWidget() {
     const MAX_USER_MESSAGES = 5;
     const MAX_USER_CHARACTERS = 150;
 
-    const systemPrompt = `DevX Consultant - Guia em 3 etapas:
-
-ETAPA 1: Analise a ideia (2-3 frases). Finalize com: "Para te dar algumas ideias, vou pesquisar 3 exemplos de mercado para você."
-
-ETAPA 2: Liste 3 exemplos reais (apenas nomes) usando '>>>'. depois pergunte: "Algum desses exemplos se alinha? Diga o nome ou descreva melhor."
-
-ETAPA 3: Após resposta sobre exemplos, responda SOMENTE com: '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="iniciar-projeto-btn" class="btn btn-primary mt-2">Iniciar Projeto e Continuar</button>'
-
-FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir, clique em 'Iniciar Projeto' ou use o formulário de contato."`;
-
     function appendMessage(text, sender, isHtml = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `${sender}-message`;
@@ -132,18 +122,14 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
     }
 
     function initCharacterCounter() {
-        // Remove contador existente se houver
         const existingCounter = document.getElementById('char-count');
-        if (existingCounter) {
-            existingCounter.remove();
-        }
+        if (existingCounter) existingCounter.remove();
 
         const charCount = document.createElement('div');
         charCount.id = 'char-count';
         charCount.className = 'character-counter';
-        charCount.innerHTML = '<span id="char-count-number">0</span>/150';
+        charCount.innerHTML = `<span id="char-count-number">0</span>/${MAX_USER_CHARACTERS}`;
         
-        // Insere o contador após o textarea
         if (chatInput.parentNode) {
             chatInput.parentNode.insertBefore(charCount, chatInput.nextSibling);
         }
@@ -151,43 +137,30 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
         chatInput.addEventListener('input', () => {
             const length = chatInput.value.length;
             const charNumber = document.getElementById('char-count-number');
-            
             if (charNumber) {
                 charNumber.textContent = length;
-                
-                // Feedback visual
-                charCount.className = 'character-counter';
-                if (length > 400) charCount.classList.add('warning');
-                if (length >= 500) charCount.classList.add('error');
+                charCount.classList.toggle('error', length > MAX_USER_CHARACTERS);
             }
         });
     }
 
     function updateChatInterface() {
-        // Desabilita chat se atingiu o limite
         if (userMessageCount >= MAX_USER_MESSAGES) {
             chatInput.disabled = true;
             chatSendButton.disabled = true;
             chatInput.placeholder = 'Limite de mensagens atingido';
             
-            // Adiciona mensagem final se não tiver sido adicionada
-            const existingLimitMessage = messagesContainer.querySelector('.limit-message');
-            if (!existingLimitMessage) {
+            if (!messagesContainer.querySelector('.limit-message')) {
                 const limitMessage = document.createElement('div');
                 limitMessage.className = 'limit-message ai-message';
-                limitMessage.innerHTML = `
-                    <p>✅ Você atingiu o limite de ${MAX_USER_MESSAGES} mensagens.</p>
-                    <p>Para continuar, clique no botão "Iniciar Projeto" ou utilize o formulário de contato.</p>
-                `;
+                limitMessage.innerHTML = `<p>✅ Você atingiu o limite de ${MAX_USER_MESSAGES} mensagens. Para continuar, use o botão "Iniciar Projeto" ou o formulário de contato.</p>`;
                 messagesContainer.appendChild(limitMessage);
             }
         } else {
             chatInput.disabled = false;
             chatSendButton.disabled = false;
-            chatInput.placeholder = 'Digite sua mensagem...';
+            chatInput.placeholder = 'Digite sua ideia aqui...';
         }
-
-        // Atualiza o contador de caracteres
         const currentLength = chatInput.value.length;
         const charNumber = document.getElementById('char-count-number');
         if (charNumber) {
@@ -201,10 +174,11 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
         const typingIndicator = appendMessage('...', 'ai');
 
         try {
+            const shortHistory = conversationHistory.slice(-2);
             const response = await fetch('/api/consultor-ia', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ history: conversationHistory })
+                body: JSON.stringify({ history: shortHistory })
             });
             
             if (!response.ok) {
@@ -215,16 +189,12 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
             const result = await response.json();
             typingIndicator.remove();
             
-            // Verifica se é a mensagem final com o botão
             const isFinalMessage = result.result.includes('<button');
             appendMessage(result.result, 'ai', isFinalMessage);
-            
             conversationHistory.push({ role: 'model', parts: [{ text: result.result }] });
 
-            // Se for mensagem final, conta como uma "resposta" que encerra o ciclo
             if (isFinalMessage) {
                 userMessageCount = MAX_USER_MESSAGES;
-                updateChatInterface();
             }
 
         } catch (error) {
@@ -240,15 +210,11 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
         messagesContainer.innerHTML = '';
         appendMessage('Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?', 'ai');
         
-        // Reinicia contadores
-        conversationHistory = [
-            { role: 'user', parts: [{ text: systemPrompt }] },
-            { role: 'model', parts: [{ text: 'Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?' }] }
-        ];
+        // CORREÇÃO: O histórico agora começa vazio. A primeira mensagem é apenas visual.
+        conversationHistory = [];
+        
         userMessageCount = 0;
         updateChatInterface();
-        
-        // Inicializa contador de caracteres
         setTimeout(initCharacterCounter, 100);
     }
 
@@ -257,36 +223,33 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
         if (chatWindow.classList.contains('open')) {
             startNewConversation();
         } else {
-            // Remove contador quando fecha o chat
             const charCount = document.getElementById('char-count');
-            if (charCount) {
-                charCount.remove();
-            }
+            if (charCount) charCount.remove();
+        }
+    });
+    
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatSendButton.click();
         }
     });
     
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        let messageText = chatInput.value.trim();
+        const messageText = chatInput.value.trim();
         
-        // Verifica limite de mensagens primeiro
         if (userMessageCount >= MAX_USER_MESSAGES) {
             showErrorToast(`Limite de ${MAX_USER_MESSAGES} mensagens atingido.`);
             return;
         }
         
-        // Verifica limite de caracteres (APENAS PARA USUÁRIO)
         if (messageText.length > MAX_USER_CHARACTERS) {
-            showErrorToast(`Mensagem muito longa. Por favor, seja mais conciso (máximo ${MAX_USER_CHARACTERS} caracteres).`);
-            messageText = messageText.substring(0, MAX_USER_CHARACTERS);
+            showErrorToast(`Mensagem muito longa (máximo ${MAX_USER_CHARACTERS} caracteres).`);
+            return;
         }
         
         if (messageText.length === 0) return;
-
-        // Atualiza o campo com texto cortado (se necessário)
-        if (messageText.length !== chatInput.value.trim().length) {
-            chatInput.value = messageText;
-        }
 
         appendMessage(messageText, 'user');
         conversationHistory.push({ role: 'user', parts: [{ text: messageText }] });
@@ -299,15 +262,13 @@ FIM: Após enviar o HTML, se usuário escrever mais, responda: "Para prosseguir,
 
     messagesContainer.addEventListener('click', (e) => {
         if (e.target.id === 'iniciar-projeto-btn') {
-            const userIdea = conversationHistory.find(msg => msg.role === 'user' && msg.parts[0].text !== systemPrompt)?.parts[0].text;
-            const aiResponse = conversationHistory.filter(msg => msg.role === 'model').map(msg => msg.parts[0].text).join('\n---\n');
-
-            if (!userIdea) {
+            const userIdeas = conversationHistory.filter(msg => msg.role === 'user').map(msg => msg.parts[0].text);
+            const aiResponses = conversationHistory.filter(msg => msg.role === 'model').map(msg => msg.parts[0].text);
+            if (userIdeas.length === 0) {
                 showErrorToast("Não foi possível capturar a ideia. Por favor, tente novamente.");
                 return;
             }
-
-            const projectSummary = `Ideia Original do Cliente:\n${userIdea}\n\n---\nHistórico da Conversa com a IA:\n${aiResponse}`;
+            const projectSummary = `Ideia Original do Cliente:\n${userIdeas.join('\n\n')}\n\n---\nRespostas da IA:\n${aiResponses.join('\n---\n')}`;
             sessionStorage.setItem('pendingProjectDescription', projectSummary);
             window.location.href = '/login.html';
         }
