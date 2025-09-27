@@ -5,10 +5,13 @@ import { createClient } from '@supabase/supabase-js';
 
 // --- CONFIGURAÇÃO DO RATE LIMITER COM SUPABASE (POSTGRES) ---
 
-// REVISADO: Usando a variável POSTGRES_URL diretamente.
-// Esta URL já é fornecida pela integração Vercel + Supabase e aponta para o Connection Pooler.
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
+  // CORREÇÃO FINAL: Adicionada a configuração de SSL, que é essencial para a Vercel
+  // se conectar de forma segura ao banco de dados do Supabase.
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 const rateLimiterOptions = {
@@ -17,18 +20,21 @@ const rateLimiterOptions = {
   keyPrefix: 'ia_chat_limiter',
 };
 
+// Limiter para usuários anônimos (identificados por IP)
 const limiterAnon = new RateLimiterPostgres({
   ...rateLimiterOptions,
   points: 2,
-  duration: 60 * 60 * 24,
+  duration: 60 * 60 * 24, // 24 horas
 });
 
+// Limiter para usuários autenticados (identificados por User ID)
 const limiterAuth = new RateLimiterPostgres({
   ...rateLimiterOptions,
   points: 30,
-  duration: 60 * 3,
+  duration: 60 * 3, // 3 minutos
 });
 
+// Função helper para verificar o JWT do Supabase de forma segura
 async function getUserIdFromToken(authHeader) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
     const token = authHeader.split(' ')[1];
@@ -43,7 +49,6 @@ async function getUserIdFromToken(authHeader) {
 }
 
 // --- LÓGICA DA API ---
-// (O restante do arquivo permanece o mesmo, mas está incluído abaixo para ser completo)
 
 const baseSchema = z.object({
   history: z.array(
@@ -78,6 +83,7 @@ export default async function handler(request, response) {
     return response.status(405).json({ message: 'Apenas o método POST é permitido.' });
   }
 
+  // Aplicação do Rate Limit
   try {
     const authHeader = request.headers.authorization;
     const userId = await getUserIdFromToken(authHeader);
