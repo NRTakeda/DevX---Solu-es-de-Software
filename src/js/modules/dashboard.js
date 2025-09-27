@@ -3,9 +3,29 @@ import { showSuccessToast, showErrorToast } from './notifications.js';
 
 async function createPendingProject(description, userId) {
     showSuccessToast("Finalizando a criação do seu projeto a partir da sua ideia...");
-    const { error } = await supabase.from('projects').insert({ description: description, client_id: userId });
-    if (error) { showErrorToast('Erro ao criar seu projeto pendente.'); console.error(error); }
-    else { showSuccessToast('Seu novo projeto foi criado com sucesso!'); }
+
+   const finalHtmlBlockIdentifier = '<p>Entendido. O próximo passo é criar seu projeto em nossa plataforma para que nossa equipe possa analisá-lo.</p><button id="';
+    
+    // Procura a posição desse trecho na descrição completa.
+    const indexOfHtmlBlock = description.indexOf(finalHtmlBlockIdentifier);
+
+    let cleanedDescription = description;
+
+    // Se o trecho for encontrado, remove-o da descrição.
+    if (indexOfHtmlBlock !== -1) {
+        // Mantém apenas a parte da string ANTES do bloco de HTML.
+        cleanedDescription = description.substring(0, indexOfHtmlBlock).trim();
+    }
+    
+    // Usa a descrição já limpa ("cleanedDescription") para inserir no banco de dados.
+    const { error } = await supabase.from('projects').insert({ description: cleanedDescription, client_id: userId });
+
+    if (error) { 
+        showErrorToast('Erro ao criar seu projeto pendente.'); 
+        console.error(error); 
+    } else { 
+        showSuccessToast('Seu novo projeto foi criado com sucesso!'); 
+    }
     sessionStorage.removeItem('pendingProjectDescription');
 }
 
@@ -38,12 +58,9 @@ function createEditProjectModal() {
     return document.getElementById('edit-project-modal');
 }
 
-// CORREÇÃO: Removido o parâmetro "user". A função agora busca o usuário por conta própria.
 export async function initDashboard() {
-    // A guarda de entrada verifica se estamos na página correta antes de fazer qualquer coisa.
     if (!document.getElementById('dashboard-sidebar')) return;
 
-    // ADICIONADO: Busca do usuário e guarda de rota, tornando o módulo autossuficiente.
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         window.location.href = '/login.html';
