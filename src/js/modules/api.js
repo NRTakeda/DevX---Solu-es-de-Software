@@ -151,12 +151,24 @@ function initAIChatWidget() {
         charWarning.textContent = `Máximo de ${MAX_USER_CHARACTERS} caracteres por mensagem`;
         chatInput.parentNode.insertBefore(charWarning, charCount.nextSibling);
 
+        // --- ALTERAÇÃO REALIZADA AQUI ---
         chatInput.addEventListener('input', () => {
-            const length = chatInput.value.length;
             const charNumber = document.getElementById('char-count-number');
+            
+            // 1. Verifica se o comprimento do texto excede o máximo
+            if (chatInput.value.length > MAX_USER_CHARACTERS) {
+                // 2. Trunca o texto para o limite máximo de caracteres
+                chatInput.value = chatInput.value.substring(0, MAX_USER_CHARACTERS);
+            }
+
+            const currentLength = chatInput.value.length;
+
             if (charNumber) {
-                charNumber.textContent = length;
-                if (length > MAX_USER_CHARACTERS) {
+                // 3. Atualiza o contador de caracteres
+                charNumber.textContent = currentLength;
+                
+                // 4. Fornece feedback visual quando o limite é atingido
+                if (currentLength >= MAX_USER_CHARACTERS) {
                     charCount.classList.add('error');
                     charWarning.style.display = 'block';
                 } else {
@@ -165,6 +177,7 @@ function initAIChatWidget() {
                 }
             }
         });
+        // --- FIM DA ALTERAÇÃO ---
     }
 
     function updateChatInterface() {
