@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Cria uma pool de conexão usando a variável de ambiente do banco
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.POSTGRES_URL_NON_POOLING,
   ssl: {
     rejectUnauthorized: false // Necessário para a Vercel se conectar ao Supabase
   }
