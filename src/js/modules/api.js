@@ -104,7 +104,7 @@ function initAIChatWidget() {
     let conversationHistory = [];
     let userMessageCount = 0;
     const MAX_USER_MESSAGES = 5;
-    const MAX_USER_CHARACTERS = 250;
+    const MAX_USER_CHARACTERS = 150;
 
     const systemPrompt = `DevX Consultant - Guia em 3 etapas:
 
