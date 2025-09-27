@@ -5,32 +5,32 @@ import { createClient } from '@supabase/supabase-js';
 
 // --- CONFIGURAÇÃO DO RATE LIMITER COM SUPABASE (POSTGRES) ---
 
-// Cria uma pool de conexão usando a variável de ambiente do banco
+// Construindo a connection string a partir das variáveis da integração da Vercel.
+// Esta é a forma mais segura e garantida.
+const connectionString = `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:5432/${process.env.POSTGRES_DATABASE}?sslmode=require`;
+
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL_NON_POOLING,
-  ssl: {
-    rejectUnauthorized: false // Necessário para a Vercel se conectar ao Supabase
-  }
+  connectionString: connectionString,
 });
 
 const rateLimiterOptions = {
   storeClient: pool,
   tableName: 'rate_limits',
-  keyPrefix: 'ia_chat_limiter', // Prefixo para evitar conflito de chaves
+  keyPrefix: 'ia_chat_limiter',
 };
 
 // Limiter para usuários anônimos (identificados por IP)
 const limiterAnon = new RateLimiterPostgres({
   ...rateLimiterOptions,
-  points: 2, // 2 chamadas à API (equivalente a 2 conversas no seu fluxo)
-  duration: 60 * 60 * 24, // por 24 horas (1 dia)
+  points: 2,
+  duration: 60 * 60 * 24, // 24 horas
 });
 
 // Limiter para usuários autenticados (identificados por User ID)
 const limiterAuth = new RateLimiterPostgres({
   ...rateLimiterOptions,
-  points: 30, // 30 requisições (mensagens)
-  duration: 60 * 3, // a cada 3 minutos
+  points: 30,
+  duration: 60 * 3, // 3 minutos
 });
 
 // Função helper para verificar o JWT do Supabase de forma segura
@@ -53,7 +53,9 @@ const baseSchema = z.object({
   history: z.array(
     z.object({
       role: z.enum(['user', 'model']),
-      parts: z.array(z.object({ text: z.string() })),
+      parts: z.array(z.object({ 
+        text: z.string()
+      })),
     })
   ),
 });
@@ -80,7 +82,6 @@ export default async function handler(request, response) {
     return response.status(405).json({ message: 'Apenas o método POST é permitido.' });
   }
 
-  // Aplicação do Rate Limit
   try {
     const authHeader = request.headers.authorization;
     const userId = await getUserIdFromToken(authHeader);
