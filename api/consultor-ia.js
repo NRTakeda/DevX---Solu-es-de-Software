@@ -13,9 +13,9 @@ const applyMiddleware = middleware => (request, response) =>
 
 // Limiter para usuários anônimos (identificados por IP)
 const limiterAnon = rateLimit({
-	windowMs: 24 * 60 * 60 * 1000, // 24 horas
-	max: 2, // 2 conversas (chamadas à API) por dia
-	message: { message: 'Limite de uso para visitantes atingido. Por favor, crie uma conta ou tente novamente amanhã.' },
+    windowMs: 3 * 60 * 60 * 1000, // 3 horas
+    max: 4, // 4 mensagens a cada 3 horas
+    message: { message: 'Limite de uso para visitantes atingido. Por favor, crie uma conta ou tente novamente mais tarde.' },
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator: (request) => {
@@ -27,20 +27,25 @@ const limiterAnon = rateLimit({
 
 // Limiter para usuários autenticados (identificados por User ID)
 const limiterAuth = rateLimit({
-	windowMs: 3 * 60 * 1000, // 3 minutos
-	max: 30, // 30 mensagens a cada 3 minutos
-	message: { message: 'Limite de uso atingido. Tente novamente em alguns minutos.' },
+    windowMs: 5 * 60 * 1000, // 5 minutos
+    max: 7, // 7 mensagens a cada 5 minutos
+    message: { message: 'Limite de uso atingido. Tente novamente em alguns minutos.' },
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    // A chave será o ID do usuário, que definiremos dinamicamente
+    keyGenerator: (request) => {
+        // 🔑 Garante que logados sejam controlados por ID e não por IP
+        return request.rateLimit?.key || request.ip;
+    },
 });
-
 
 async function getUserIdFromToken(authHeader) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
     const token = authHeader.split(' ')[1];
     try {
-        const supabase = createSupabaseClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY);
+        const supabase = createSupabaseClient(
+            process.env.VITE_SUPABASE_URL,
+            process.env.VITE_SUPABASE_ANON_KEY
+        );
         const { data: { user } } = await supabase.auth.getUser(token);
         return user ? user.id : null;
     } catch (error) {
@@ -57,11 +62,12 @@ const baseSchema = z.object({
   })),
 });
 
+// Limite de 150 caracteres por mensagem
 const refinedSchema = baseSchema.refine(data => {
     const lastMessage = data.history.length > 0 ? data.history[data.history.length - 1] : null;
     if (lastMessage && lastMessage.role === 'user') {
         const userText = lastMessage.parts[0]?.text || '';
-        return userText.length <= 1000;
+        return userText.length <= 150;
     }
     return true;
 }, { message: 'Sua mensagem é muito longa. Por favor, seja mais conciso.' });

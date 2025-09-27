@@ -103,7 +103,10 @@ function initAIChatWidget() {
 
     let conversationHistory = [];
     let userMessageCount = 0;
-    const MAX_USER_MESSAGES = 5;
+
+    // 🔑 Definição dos limites diferentes
+    const isLoggedIn = !!localStorage.getItem("authToken"); // Ajuste conforme sua lógica de login
+    const MAX_USER_MESSAGES = isLoggedIn ? 7 : 4;  
     const MAX_USER_CHARACTERS = 150;
 
     function appendMessage(text, sender, isHtml = false) {
@@ -210,9 +213,7 @@ function initAIChatWidget() {
         messagesContainer.innerHTML = '';
         appendMessage('Olá! Como posso ajudar a transformar sua ideia em um projeto de software hoje?', 'ai');
         
-        // CORREÇÃO: O histórico agora começa vazio. A primeira mensagem é apenas visual.
         conversationHistory = [];
-        
         userMessageCount = 0;
         updateChatInterface();
         setTimeout(initCharacterCounter, 100);
