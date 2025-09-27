@@ -42,7 +42,7 @@ export async function initAdmin() {
     const rejectMessageTextarea = document.getElementById('reject-message');
 
     // helper truncar
-    function buildDescription(fullText, length = 100) {
+    function buildDescription(fullText, length = 50) {
         if (!fullText) return 'Sem descrição';
         if (fullText.length <= length) return fullText;
 
