@@ -22,6 +22,7 @@
                             <tr class="border-b dark:border-gray-700">
                                 <th class="p-4">Nome do Projeto</th>
                                 <th class="p-4">Cliente (Usuário)</th>
+                                <th class="p-4">Descrição</th>
                                 <th class="p-4">Status Atual</th>
                                 <th class="p-4">Ações</th>
                             </tr>
@@ -34,20 +35,28 @@
             </div>
         </section>
 
-        <!-- Modal de Edição (Existente) -->
+        <!-- Modal de Edição (agora com campo de descrição) -->
         <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
             <div class="card p-8 w-full max-w-lg">
                 <h3 class="text-2xl font-bold mb-4">Editar Projeto</h3>
                 <form id="edit-project-form">
                     <input type="hidden" id="edit-project-id">
+                    
                     <div class="mb-4">
                         <label for="edit-project-name" class="block mb-2 text-sm font-semibold">Nome do Projeto</label>
-                        <input type="text" id="edit-project-name">
+                        <input type="text" id="edit-project-name" class="w-full p-2 border border-gray-300 rounded">
                     </div>
+
+                    <div class="mb-4">
+                        <label for="edit-project-description" class="block mb-2 text-sm font-semibold">Descrição</label>
+                        <textarea id="edit-project-description" rows="4" class="w-full p-2 border border-gray-300 rounded"></textarea>
+                    </div>
+
                     <div class="mb-4">
                         <label for="edit-project-status" class="block mb-2 text-sm font-semibold">Status</label>
-                        <input type="text" id="edit-project-status" placeholder="Ex: Em Desenvolvimento">
+                        <input type="text" id="edit-project-status" placeholder="Ex: Em Desenvolvimento" class="w-full p-2 border border-gray-300 rounded">
                     </div>
+
                     <div class="flex justify-end gap-4">
                         <button type="button" id="cancel-edit-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Salvar Alterações</button>
@@ -56,7 +65,7 @@
             </div>
         </section>
 
-        <!-- Novo Modal de Rejeição -->
+        <!-- Modal de Rejeição -->
         <section id="reject-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
             <div class="card p-8 w-full max-w-2xl">
                 <h3 class="text-2xl font-bold mb-4 text-red-600">Rejeitar Projeto</h3>

@@ -5,7 +5,7 @@ export async function initAdmin() {
     const projectsTableBody = document.getElementById('projects-table-body');
     if (!projectsTableBody) return;
 
-    // 1. Proteger a página (código existente, está correto)
+    // 1. Proteger a página
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         window.location.href = '/login.html';
@@ -30,6 +30,7 @@ export async function initAdmin() {
     const cancelEditButton = document.getElementById('cancel-edit-button');
     const projectIdInput = document.getElementById('edit-project-id');
     const projectNameInput = document.getElementById('edit-project-name');
+    const projectDescriptionInput = document.getElementById('edit-project-description');
     const projectStatusInput = document.getElementById('edit-project-status');
 
     const rejectModal = document.getElementById('reject-modal');
@@ -42,18 +43,16 @@ export async function initAdmin() {
     // 2. Função para buscar e renderizar projetos
     async function renderProjects() {
         try {
-            // CORREÇÃO 1: Adicionado filtro .not('status', 'eq', 'Rejeitado')
-            // para não exibir projetos já rejeitados.
             const { data: projects, error: projectsError } = await supabase
                 .from('projects')
-                .select('id, name, status, client_id, profiles ( id, username, full_name )')
+                .select('id, name, description, status, client_id, profiles ( id, username, full_name )')
                 .not('status', 'eq', 'Rejeitado')
                 .order('created_at', { ascending: false });
 
             if (projectsError) throw projectsError;
 
             if (!projects || projects.length === 0) {
-                projectsTableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center">Nenhum projeto ativo encontrado.</td></tr>`;
+                projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto ativo encontrado.</td></tr>`;
                 return;
             }
 
@@ -66,6 +65,7 @@ export async function initAdmin() {
                 tr.innerHTML = `
                     <td class="p-4">${project.name || 'N/A'}</td>
                     <td class="p-4"><div>${clientUsername}</div></td>
+                    <td class="p-4">${project.description || 'Sem descrição'}</td>
                     <td class="p-4">
                         <span class="px-2 py-1 rounded-full text-xs ${
                             project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' :
@@ -74,15 +74,27 @@ export async function initAdmin() {
                         }">${project.status || 'N/A'}</span>
                     </td>
                     <td class="p-4">
-                        <button data-id="${project.id}" data-name="${project.name || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button>
-                        <button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button>
+                        <button 
+                            data-id="${project.id}" 
+                            data-name="${project.name || ''}" 
+                            data-description="${project.description || ''}" 
+                            data-status="${project.status || ''}" 
+                            class="edit-btn text-sky-500 hover:underline mr-3">
+                            Editar
+                        </button>
+                        <button 
+                            data-id="${project.id}" 
+                            data-name="${project.name || ''}" 
+                            class="reject-btn text-red-500 hover:underline">
+                            Rejeitar
+                        </button>
                     </td>
                 `;
                 projectsTableBody.appendChild(tr);
             });
         } catch (error) {
             console.error('Erro ao buscar projetos:', error);
-            projectsTableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">Erro ao carregar projetos: ${error.message}</td></tr>`;
+            projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Erro ao carregar projetos: ${error.message}</td></tr>`;
         }
     }
 
@@ -92,6 +104,7 @@ export async function initAdmin() {
             const button = e.target;
             projectIdInput.value = button.dataset.id;
             projectNameInput.value = button.dataset.name;
+            projectDescriptionInput.value = button.dataset.description;
             projectStatusInput.value = button.dataset.status;
             editModal.classList.remove('hidden');
         }
@@ -100,11 +113,7 @@ export async function initAdmin() {
             const button = e.target;
             rejectProjectIdInput.value = button.dataset.id;
             rejectProjectNameInput.value = button.dataset.name;
-            
-            // CORREÇÃO 2: A mensagem padrão agora é apenas o motivo,
-            // não o template completo do e-mail.
             rejectMessageTextarea.value = `O projeto não se alinha com nossas especialidades atuais.`;
-            
             rejectModal.classList.remove('hidden');
         }
     });
@@ -132,6 +141,7 @@ export async function initAdmin() {
             const id = projectIdInput.value;
             const updatedData = {
                 name: projectNameInput.value,
+                description: projectDescriptionInput.value,
                 status: projectStatusInput.value
             };
 
