@@ -59,19 +59,12 @@ export async function initAdmin() {
     const topCountriesList = document.getElementById('stats-top-countries-list');
     const topDevicesList = document.getElementById('stats-top-devices-list');
 
-    let scansChart = null; // Variável global para a instância do gráfico
+    let scansChart = null; 
 
     // --- GUARDA DE SEGURANÇA (VERIFICA SE É ADMIN) ---
-    if (!user) {
-        window.location.href = '/login.html';
-        return;
-    }
+    if (!user) { window.location.href = '/login.html'; return; }
     const { data: profile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (profileError || profile.role !== 'admin') {
-        showErrorToast('Acesso negado.');
-        window.location.href = '/dashboard.html';
-        return;
-    }
+    if (profileError || profile.role !== 'admin') { showErrorToast('Acesso negado.'); window.location.href = '/dashboard.html'; return; }
 
     // --- NAVEGAÇÃO DA SIDEBAR ---
     function showContent(elementToShow) {
@@ -84,20 +77,8 @@ export async function initAdmin() {
         activeLink.classList.add('active');
     }
 
-    navLinkProjects.addEventListener('click', (e) => {
-        e.preventDefault();
-        setActiveLink(navLinkProjects);
-        showContent(contentProjects);
-    });
-
-    navLinkQrCodes.addEventListener('click', (e) => {
-        e.preventDefault();
-        setActiveLink(navLinkQrCodes);
-        showContent(contentQrCodes);
-        if (!qrcodesTableBody.dataset.loaded) {
-            renderQRCodes();
-        }
-    });
+    navLinkProjects.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProjects); showContent(contentProjects); });
+    navLinkQrCodes.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkQrCodes); showContent(contentQrCodes); if (!qrcodesTableBody.dataset.loaded) { renderQRCodes(); } });
 
     // --- LÓGICA DE PROJETOS ---
     function buildDescription(fullText, length = 50) {
@@ -131,9 +112,7 @@ export async function initAdmin() {
                         <td class="p-4">${project.name || 'N/A'}</td>
                         <td class="p-4">${clientUsername}</td>
                         <td class="p-4">${buildDescription(project.description, 100)}</td>
-                        <td class="p-4">
-                            <span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span>
-                        </td>
+                        <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span></td>
                         <td class="p-4">
                             <button data-id="${project.id}" data-name="${project.name || ''}" data-description="${project.description || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button>
                             <button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button>
@@ -144,57 +123,13 @@ export async function initAdmin() {
                 if (cardsContainer) {
                     const card = document.createElement('div');
                     card.className = "p-4 border rounded-lg bg-white dark:bg-gray-800 shadow space-y-2";
-                    card.innerHTML = `
-                        <p><strong>Projeto:</strong> ${project.name || 'N/A'}</p>
-                        <p><strong>Cliente:</strong> ${clientUsername}</p>
-                        <p><strong>Descrição:</strong> ${buildDescription(project.description, 120)}</p>
-                        <p><strong>Status:</strong> <span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span></p>
-                        <div class="pt-2">
-                            <button data-id="${project.id}" data-name="${project.name || ''}" data-description="${project.description || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button>
-                            <button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button>
-                        </div>
-                    `;
+                    card.innerHTML = `<p><strong>Projeto:</strong> ${project.name || 'N/A'}</p><p><strong>Cliente:</strong> ${clientUsername}</p><p><strong>Descrição:</strong> ${buildDescription(project.description, 120)}</p><p><strong>Status:</strong> <span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span></p><div class="pt-2"><button data-id="${project.id}" data-name="${project.name || ''}" data-description="${project.description || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button><button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button></div>`;
                     cardsContainer.appendChild(card);
                 }
             });
-        } catch (error) {
-            console.error('Erro ao buscar projetos:', error);
-        }
+        } catch (error) { console.error('Erro ao buscar projetos:', error); }
     }
-
-    document.body.addEventListener('click', (e) => {
-        if (e.target.classList.contains('toggle-desc')) {
-            const container = e.target.closest('td, p');
-            const short = container.querySelector('.short-desc');
-            const full = container.querySelector('.full-desc');
-            if (full.classList.contains('hidden')) {
-                short.classList.add('hidden');
-                full.classList.remove('hidden');
-                e.target.textContent = "Ver menos";
-            } else {
-                short.classList.remove('hidden');
-                full.classList.add('hidden');
-                e.target.textContent = "Ver mais";
-            }
-        }
-    });
-
-    document.body.addEventListener('click', (e) => {
-        if (e.target.classList.contains('edit-btn')) {
-            projectIdInput.value = e.target.dataset.id;
-            projectNameInput.value = e.target.dataset.name;
-            projectDescriptionInput.value = e.target.dataset.description;
-            projectStatusInput.value = e.target.dataset.status;
-            editModal.classList.remove('hidden');
-        }
-        if (e.target.classList.contains('reject-btn')) {
-            rejectProjectIdInput.value = e.target.dataset.id;
-            rejectProjectNameInput.value = e.target.dataset.name;
-            rejectMessageTextarea.value = `O projeto não se alinha com nossas especialidades atuais.`;
-            rejectModal.classList.remove('hidden');
-        }
-    });
-
+    
     cancelEditButton.addEventListener('click', () => editModal.classList.add('hidden'));
     cancelRejectButton.addEventListener('click', () => rejectModal.classList.add('hidden'));
 
@@ -213,22 +148,13 @@ export async function initAdmin() {
         else { showSuccessToast(result.message); rejectModal.classList.add('hidden'); await renderProjects(); }
     });
 
-
     // --- LÓGICA DE QR CODES ---
     async function renderQRCodes() {
         qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Carregando...</td></tr>`;
         qrcodesTableBody.dataset.loaded = "true";
         const { data: links, error } = await supabase.from('qr_links').select(`id, slug, destino, descricao, qr_logs ( count )`).order('created_at', { ascending: false });
-        if (error) {
-            showErrorToast('Erro ao carregar os QR Codes.');
-            console.error(error);
-            qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Erro ao carregar.</td></tr>`;
-            return;
-        }
-        if (links.length === 0) {
-            qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum QR Code criado ainda.</td></tr>`;
-            return;
-        }
+        if (error) { showErrorToast('Erro ao carregar os QR Codes.'); console.error(error); qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Erro ao carregar.</td></tr>`; return; }
+        if (links.length === 0) { qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum QR Code criado ainda.</td></tr>`; return; }
         qrcodesTableBody.innerHTML = '';
         links.forEach(link => {
             const tr = document.createElement('tr');
@@ -259,7 +185,7 @@ export async function initAdmin() {
 
     cancelQrCodeButton.addEventListener('click', () => qrCodeModal.classList.add('hidden'));
     closeViewQrButton.addEventListener('click', () => viewQrModal.classList.add('hidden'));
-
+    
     qrCodeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(qrCodeForm);
@@ -270,7 +196,7 @@ export async function initAdmin() {
         else { showSuccessToast(`QR Code ${id ? 'atualizado' : 'criado'} com sucesso!`); qrCodeModal.classList.add('hidden'); await renderQRCodes(); }
     });
 
-    // --- LÓGICA DE ESTATÍSTICAS E AÇÕES DA TABELA QR ---
+    // --- LÓGICA DE ESTATÍSTICAS ---
     function parseUserAgent(ua) {
         if (!ua) return 'Desconhecido';
         if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
@@ -284,16 +210,12 @@ export async function initAdmin() {
     async function displayStatsForQR(qrId, slug) {
         statsModalTitle.textContent = `Estatísticas para: ${slug}`;
         statsModal.classList.remove('hidden');
-        statsTotalScans.textContent = '...';
-        statsScans7Days.textContent = '...';
-        statsTopCountry.textContent = '...';
-        topCountriesList.innerHTML = '<li>Carregando...</li>';
-        topDevicesList.innerHTML = '<li>Carregando...</li>';
+        statsTotalScans.textContent = '...'; statsScans7Days.textContent = '...'; statsTopCountry.textContent = '...';
+        topCountriesList.innerHTML = '<li>Carregando...</li>'; topDevicesList.innerHTML = '<li>Carregando...</li>';
         const { data: logs, error } = await supabase.from('qr_logs').select('created_at, geo, user_agent').eq('qr_id', qrId).order('created_at', { ascending: true });
         if (error) { showErrorToast('Erro ao buscar estatísticas.'); return; }
         const totalScans = logs.length;
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const scansLast7Days = logs.filter(log => new Date(log.created_at) > sevenDaysAgo).length;
         const countryCounts = logs.reduce((acc, log) => { const country = log.geo?.country || 'Desconhecido'; acc[country] = (acc[country] || 0) + 1; return acc; }, {});
         const topCountries = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]);
@@ -303,8 +225,8 @@ export async function initAdmin() {
         statsTotalScans.textContent = totalScans;
         statsScans7Days.textContent = scansLast7Days;
         statsTopCountry.textContent = topCountries.length > 0 ? topCountries[0][0] : 'N/A';
-        topCountriesList.innerHTML = topCountries.slice(0, 5).map(c => `<li>${c[0]}: <strong>${c[1]}</strong></li>`).join('');
-        topDevicesList.innerHTML = topDevices.slice(0, 5).map(d => `<li>${d[0]}: <strong>${d[1]}</strong></li>`).join('');
+        topCountriesList.innerHTML = topCountries.slice(0, 5).map(c => `<li>${c[0]}: <strong>${c[1]}</strong></li>`).join('') || '<li>Nenhum dado</li>';
+        topDevicesList.innerHTML = topDevices.slice(0, 5).map(d => `<li>${d[0]}: <strong>${d[1]}</strong></li>`).join('') || '<li>Nenhum dado</li>';
         if (scansChart) { scansChart.destroy(); }
         scansChart = new Chart(scansOverTimeChartCanvas, {
             type: 'line',
@@ -313,26 +235,38 @@ export async function initAdmin() {
         });
     }
 
-    qrcodesTableBody.addEventListener('click', async (e) => {
-        const target = e.target.closest('button');
-        if (!target) return;
-        const id = target.dataset.id;
-        if (target.classList.contains('delete-qr-btn')) {
+    closeStatsModalButton.addEventListener('click', () => statsModal.classList.add('hidden'));
+
+    // --- EVENT DELEGATION (Ouvinte de eventos principal para ações dinâmicas) ---
+    document.body.addEventListener('click', async (e) => {
+        const target = e.target;
+        // Ações de PROJETOS
+        if (target.classList.contains('toggle-desc')) { const container = target.closest('td, p'); const short = container.querySelector('.short-desc'); const full = container.querySelector('.full-desc'); if (full.classList.contains('hidden')) { short.classList.add('hidden'); full.classList.remove('hidden'); target.textContent = "Ver menos"; } else { short.classList.remove('hidden'); full.classList.add('hidden'); target.textContent = "Ver mais"; } }
+        if (target.classList.contains('edit-btn')) { projectIdInput.value = target.dataset.id; projectNameInput.value = target.dataset.name; projectDescriptionInput.value = target.dataset.description; projectStatusInput.value = target.dataset.status; editModal.classList.remove('hidden'); }
+        if (target.classList.contains('reject-btn')) { rejectProjectIdInput.value = target.dataset.id; rejectProjectNameInput.value = target.dataset.name; rejectMessageTextarea.value = `O projeto não se alinha com nossas especialidades atuais.`; rejectModal.classList.remove('hidden'); }
+
+        // Ações de QR CODES
+        const qrButton = target.closest('button');
+        if (!qrButton || !qrButton.dataset.id) return;
+        const qrId = qrButton.dataset.id;
+        if (qrButton.classList.contains('delete-qr-btn')) {
             if (confirm('Tem certeza que deseja excluir este QR Code? Todos os seus dados de scan serão perdidos.')) {
-                const { error } = await supabase.from('qr_links').delete().eq('id', id);
+                const { error } = await supabase.from('qr_links').delete().eq('id', qrId);
                 if (error) { showErrorToast(error.message); }
                 else { showSuccessToast('QR Code excluído com sucesso.'); await renderQRCodes(); }
             }
-        } else if (target.classList.contains('edit-qr-btn')) {
-            const data = JSON.parse(target.dataset.fullData);
+        }
+        if (qrButton.classList.contains('edit-qr-btn')) {
+            const data = JSON.parse(qrButton.dataset.fullData);
             editQrCodeId.value = data.id;
             document.getElementById('qrcode-slug').value = data.slug;
             document.getElementById('qrcode-destino').value = data.destino;
             document.getElementById('qrcode-descricao').value = data.descricao;
             modalTitle.textContent = 'Editar QR Code';
             qrCodeModal.classList.remove('hidden');
-        } else if (target.classList.contains('view-qr-btn')) {
-            const slug = target.closest('tr').querySelector('.font-mono').textContent;
+        }
+        if (qrButton.classList.contains('view-qr-btn')) {
+            const slug = qrButton.closest('tr').querySelector('.font-mono').textContent;
             const qrUrl = `${window.location.origin}/api/qr/${slug}`;
             qrLinkDisplay.textContent = qrUrl;
             QRCode.toCanvas(qrCanvas, qrUrl, { width: 256 }, (error) => {
@@ -340,15 +274,13 @@ export async function initAdmin() {
                 downloadQrLink.href = qrCanvas.toDataURL('image/png');
             });
             viewQrModal.classList.remove('hidden');
-        } else if (target.classList.contains('stats-qr-btn')) {
-            const slug = target.dataset.slug;
-            displayStatsForQR(id, slug);
+        }
+        if (qrButton.classList.contains('stats-qr-btn')) {
+            const slug = qrButton.dataset.slug;
+            displayStatsForQR(qrId, slug);
         }
     });
-
-    closeStatsModalButton.addEventListener('click', () => statsModal.classList.add('hidden'));
-
-
+    
     // --- INICIALIZAÇÃO DA PÁGINA ---
     setActiveLink(navLinkProjects);
     showContent(contentProjects);
