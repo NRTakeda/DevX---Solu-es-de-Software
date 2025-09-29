@@ -17,6 +17,11 @@ export async function initAdmin() {
     const contentProjects = document.getElementById('content-projects');
     const contentQrCodes = document.getElementById('content-qrcodes');
 
+    // Elementos da Sidebar Responsiva
+    const sidebar = document.getElementById('admin-sidebar');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
     // Elementos da Seção de Projetos
     const projectsTableBody = document.getElementById('projects-table-body');
     const cardsContainer = document.getElementById('projects-cards');
@@ -66,6 +71,14 @@ export async function initAdmin() {
     const { data: profile, error: profileError } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (profileError || profile.role !== 'admin') { showErrorToast('Acesso negado.'); window.location.href = '/dashboard.html'; return; }
 
+    // --- LÓGICA DA SIDEBAR RESPONSIVA ---
+    const toggleSidebar = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
+    }
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+
     // --- NAVEGAÇÃO DA SIDEBAR ---
     function showContent(elementToShow) {
         [contentProjects, contentQrCodes].forEach(el => el.classList.add('hidden'));
@@ -90,11 +103,7 @@ export async function initAdmin() {
 
     async function renderProjects() {
         try {
-            const { data: projects, error: projectsError } = await supabase
-                .from('projects')
-                .select('id, name, description, status, client_id, profiles ( id, username, full_name )')
-                .not('status', 'eq', 'Rejeitado')
-                .order('created_at', { ascending: false });
+            const { data: projects, error: projectsError } = await supabase.from('projects').select('id, name, description, status, client_id, profiles ( id, username, full_name )').not('status', 'eq', 'Rejeitado').order('created_at', { ascending: false });
             if (projectsError) throw projectsError;
             if (!projects || projects.length === 0) {
                 if (projectsTableBody) projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto ativo encontrado.</td></tr>`;
@@ -108,16 +117,7 @@ export async function initAdmin() {
                 if (projectsTableBody) {
                     const tr = document.createElement('tr');
                     tr.className = 'border-b dark:border-gray-700';
-                    tr.innerHTML = `
-                        <td class="p-4">${project.name || 'N/A'}</td>
-                        <td class="p-4">${clientUsername}</td>
-                        <td class="p-4">${buildDescription(project.description, 100)}</td>
-                        <td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span></td>
-                        <td class="p-4">
-                            <button data-id="${project.id}" data-name="${project.name || ''}" data-description="${project.description || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button>
-                            <button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button>
-                        </td>
-                    `;
+                    tr.innerHTML = `<td class="p-4">${project.name || 'N/A'}</td><td class="p-4">${clientUsername}</td><td class="p-4">${buildDescription(project.description, 100)}</td><td class="p-4"><span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span></td><td class="p-4"><button data-id="${project.id}" data-name="${project.name || ''}" data-description="${project.description || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button><button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button></td>`;
                     projectsTableBody.appendChild(tr);
                 }
                 if (cardsContainer) {
@@ -159,18 +159,7 @@ export async function initAdmin() {
         links.forEach(link => {
             const tr = document.createElement('tr');
             tr.className = 'border-b dark:border-gray-700';
-            tr.innerHTML = `
-                <td class="p-4 font-mono text-sm">${link.slug}</td>
-                <td class="p-4 text-sm truncate" style="max-width: 200px;"><a href="${link.destino}" target="_blank" class="text-sky-500 hover:underline">${link.destino}</a></td>
-                <td class="p-4 text-sm">${link.descricao || '---'}</td>
-                <td class="p-4 text-center font-bold">${link.qr_logs[0]?.count || 0}</td>
-                <td class="p-4">
-                    <button data-id="${link.id}" data-slug="${link.slug}" class="stats-qr-btn text-gray-500 hover:text-sky-500 p-1" title="Ver Estatísticas">📊</button>
-                    <button data-id="${link.id}" class="view-qr-btn text-gray-500 hover:text-sky-500 p-1" title="Ver QR Code">👁️</button>
-                    <button data-id="${link.id}" class="edit-qr-btn text-gray-500 hover:text-sky-500 p-1" title="Editar">✏️</button>
-                    <button data-id="${link.id}" class="delete-qr-btn text-gray-500 hover:text-red-500 p-1" title="Excluir">🗑️</button>
-                </td>
-            `;
+            tr.innerHTML = `<td class="p-4 font-mono text-sm">${link.slug}</td><td class="p-4 text-sm truncate" style="max-width: 200px;"><a href="${link.destino}" target="_blank" class="text-sky-500 hover:underline">${link.destino}</a></td><td class="p-4 text-sm">${link.descricao || '---'}</td><td class="p-4 text-center font-bold">${link.qr_logs[0]?.count || 0}</td><td class="p-4"><button data-id="${link.id}" data-slug="${link.slug}" class="stats-qr-btn text-gray-500 hover:text-sky-500 p-1" title="Ver Estatísticas">📊</button><button data-id="${link.id}" class="view-qr-btn text-gray-500 hover:text-sky-500 p-1" title="Ver QR Code">👁️</button><button data-id="${link.id}" class="edit-qr-btn text-gray-500 hover:text-sky-500 p-1" title="Editar">✏️</button><button data-id="${link.id}" class="delete-qr-btn text-gray-500 hover:text-red-500 p-1" title="Excluir">🗑️</button></td>`;
             qrcodesTableBody.appendChild(tr);
             tr.querySelector('.edit-qr-btn').dataset.fullData = JSON.stringify(link);
         });
