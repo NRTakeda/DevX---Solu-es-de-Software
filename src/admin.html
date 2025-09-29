@@ -8,127 +8,141 @@
     
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="antialiased">
+<body class="antialiased md:overflow-hidden">
 
     <div id="header-placeholder"></div>
 
-    <main class="pt-32 pb-16">
-        <section class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold mb-8">Painel Administrativo de Projetos</h2>
-            <div class="card p-8">
-                <div class="overflow-x-auto">
-                    <!-- TABELA (Desktop e telas >= md) -->
-                    <table class="hidden md:table w-full text-left">
-                        <thead>
-                            <tr class="border-b dark:border-gray-700">
-                                <th class="p-4">Nome do Projeto</th>
-                                <th class="p-4">Cliente (Usuário)</th>
-                                <th class="p-4">Descrição</th>
-                                <th class="p-4">Status Atual</th>
-                                <th class="p-4">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="projects-table-body">
-                            <!-- Conteúdo dinâmico via JavaScript -->
-                        </tbody>
-                    </table>
+    <div class="flex">
+        <aside id="admin-sidebar" class="fixed top-0 left-0 z-40 h-screen border-r dark:border-gray-700 bg-white dark:bg-gray-800 transition-transform md:translate-x-0 -translate-x-full" style="width: 16rem;">
+            <div class="h-full px-3 py-4 overflow-y-auto" style="padding-top: 100px;">
+                <ul class="space-y-2 font-medium">
+                    <li>
+                        <a href="#" id="nav-link-projects" class="nav-link flex items-center p-3 rounded-lg group">
+                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                            </svg>
+                            <span class="ml-3">Gerenciar Projetos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" id="nav-link-qrcodes" class="nav-link flex items-center p-3 rounded-lg group">
+                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" transform="rotate(45 12 12) scale(0.8)"/>
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z"/>
+                            </svg>
+                            <span class="ml-3">Gerenciar QR Codes</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
 
-                    <!-- CARDS (Mobile: telas < md) -->
-                    <div class="md:hidden space-y-4 mt-4" id="projects-cards">
-                        <!-- Conteúdo dinâmico via JavaScript -->
+        <main id="main-content" class="w-full p-4 md:p-8 overflow-y-auto h-screen" style="padding-top: 100px; margin-left: 0; md:margin-left: 16rem;">
+            
+            <div id="content-projects">
+                <section class="container mx-auto px-6">
+                    <h2 class="text-3xl font-bold mb-8">Painel Administrativo de Projetos</h2>
+                    <div class="card p-8">
+                        <div class="overflow-x-auto">
+                            <table class="hidden md:table w-full text-left">
+                                <thead>
+                                    <tr class="border-b dark:border-gray-700">
+                                        <th class="p-4">Nome do Projeto</th>
+                                        <th class="p-4">Cliente (Usuário)</th>
+                                        <th class="p-4">Descrição</th>
+                                        <th class="p-4">Status Atual</th>
+                                        <th class="p-4">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="projects-table-body"></tbody>
+                            </table>
+                            <div class="md:hidden space-y-4 mt-4" id="projects-cards"></div>
+                        </div>
+                    </div>
+                </section>
+                <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
+                    <div class="card p-8 w-full max-w-lg"></div>
+                </section>
+                <section id="reject-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
+                    <div class="card p-8 w-full max-w-2xl"></div>
+                </section>
+            </div>
+            
+            <div id="content-qrcodes" class="hidden">
+                <section class="container mx-auto px-6">
+                    <div class="flex justify-between items-center mb-8">
+                        <h2 class="text-3xl font-bold">Gerenciador de QR Codes</h2>
+                        <button id="create-qr-btn" class="btn btn-primary">Criar Novo QR Code</button>
+                    </div>
+                    <div class="card p-8">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b dark:border-gray-700">
+                                        <th class="p-4">Slug</th>
+                                        <th class="p-4">Destino</th>
+                                        <th class="p-4">Descrição</th>
+                                        <th class="p-4">Scans</th>
+                                        <th class="p-4">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="qrcodes-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                <section id="qrcode-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div class="card p-8 w-full max-w-lg"></div>
+                </section>
+                <section id="view-qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div class="card p-8 w-full max-w-sm text-center"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <section id="stats-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+        <div class="card p-8 w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="stats-modal-title" class="text-2xl font-bold">Estatísticas do QR Code</h3>
+                <button type="button" id="close-stats-modal-button" class="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="overflow-y-auto">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div class="bg-light-gray p-4 rounded-lg text-center">
+                        <p class="text-sm font-semibold text-gray-500">Total de Scans</p>
+                        <p id="stats-total-scans" class="text-3xl font-bold">---</p>
+                    </div>
+                    <div class="bg-light-gray p-4 rounded-lg text-center">
+                        <p class="text-sm font-semibold text-gray-500">Scans (Últimos 7 dias)</p>
+                        <p id="stats-scans-7-days" class="text-3xl font-bold">---</p>
+                    </div>
+                    <div class="bg-light-gray p-4 rounded-lg text-center">
+                        <p class="text-sm font-semibold text-gray-500">País com Mais Scans</p>
+                        <p id="stats-top-country" class="text-3xl font-bold">---</p>
+                    </div>
+                </div>
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold mb-2">Scans ao Longo do Tempo</h4>
+                    <div class="bg-light-gray p-4 rounded-lg">
+                        <canvas id="scans-over-time-chart"></canvas>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">Top 5 Países</h4>
+                        <ul id="stats-top-countries-list" class="space-y-2"></ul>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">Top 5 Dispositivos (OS)</h4>
+                        <ul id="stats-top-devices-list" class="space-y-2"></ul>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Modal de Edição -->
-        <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
-            <div class="card p-8 w-full max-w-lg">
-                <h3 class="text-2xl font-bold mb-4">Editar Projeto</h3>
-                <form id="edit-project-form">
-                    <input type="hidden" id="edit-project-id">
-                    
-                    <div class="mb-4">
-                        <label for="edit-project-name" class="block mb-2 text-sm font-semibold">Nome do Projeto</label>
-                        <input type="text" id="edit-project-name" class="w-full p-2 border border-gray-300 rounded">
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="edit-project-description" class="block mb-2 text-sm font-semibold">Descrição</label>
-                        <textarea id="edit-project-description" rows="4" class="w-full p-2 border border-gray-300 rounded"></textarea>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="edit-project-status" class="block mb-2 text-sm font-semibold">Status</label>
-                        <input type="text" id="edit-project-status" placeholder="Ex: Em Desenvolvimento" class="w-full p-2 border border-gray-300 rounded">
-                    </div>
-
-                    <div class="flex justify-end gap-4">
-                        <button type="button" id="cancel-edit-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                    </div>
-                </form>
-            </div>
-        </section>
-
-        <!-- Modal de Rejeição -->
-        <section id="reject-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-100">
-            <div class="card p-8 w-full max-w-2xl">
-                <h3 class="text-2xl font-bold mb-4 text-red-600">Rejeitar Projeto</h3>
-                <form id="reject-project-form">
-                    <input type="hidden" id="reject-project-id">
-                    <input type="hidden" id="reject-client-email">
-                    
-                    <div class="mb-4">
-                        <label class="block mb-2 text-sm font-semibold">Projeto:</label>
-                        <input type="text" id="reject-project-name" readonly 
-                               class="w-full p-2 border border-gray-300 rounded bg-gray-100 cursor-not-allowed">
-                    </div>
-                    
-                    <div class="mb-6">
-                        <label for="reject-message" class="block mb-2 text-sm font-semibold">
-                            Mensagem de Rejeição para o Cliente:
-                        </label>
-                        <textarea id="reject-message" rows="8" required
-                                  class="w-full p-3 border border-gray-300 rounded focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                                  placeholder="Digite a mensagem que será enviada ao cliente..."></textarea>
-                        <p class="text-sm text-gray-500 mt-1">Esta mensagem será enviada por e-mail ao cliente.</p>
-                    </div>
-                    
-                    <div class="bg-yellow-50 border border-yellow-200 rounded p-4 mb-6">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-yellow-800">Atenção</h3>
-                                <div class="mt-2 text-sm text-yellow-700">
-                                    <p>Esta ação não pode ser desfeita. O projeto será excluído permanentemente e o cliente será notificado.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end gap-4">
-                        <button type="button" id="cancel-reject-button" 
-                                class="btn bg-gray-500 hover:bg-gray-600 text-white px-6 py-2">
-                            Cancelar
-                        </button>
-                        <button type="submit" 
-                                class="btn bg-red-600 hover:bg-red-700 text-white px-6 py-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                            Confirmar Rejeição
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </section>
-    </main>
-    
+    <div id="footer-placeholder"></div>
     <script type="module" src="/js/main.js"></script>
 </body>
 </html>
