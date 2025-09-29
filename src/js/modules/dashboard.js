@@ -59,6 +59,8 @@ function createEditProjectModal() {
 }
 
 export async function initDashboard() {
+    // CORREÇÃO: GUARDA DE PÁGINA
+    // Se não encontrar a sidebar do dashboard, encerra a função para não rodar em outras páginas.
     if (!document.getElementById('dashboard-sidebar')) return;
 
     const { data: { user } } = await supabase.auth.getUser();
