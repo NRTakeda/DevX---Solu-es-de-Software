@@ -5,7 +5,7 @@ import { Chart, registerables } from 'chart.js';
 Chart.register(...registerables);
 
 export async function initAdmin() {
-    // --- PONTO DE VERIFICAÇÃO INICIAL ---
+    // GUARDA DE PÁGINA: Se não encontrar a sidebar do admin, encerra a função imediatamente.
     if (!document.getElementById('admin-sidebar')) return;
 
     // --- SELEÇÃO DE ELEMENTOS DO DOM ---
@@ -107,23 +107,128 @@ export async function initAdmin() {
         return `<span class="short-desc">${shortText}</span><span class="full-desc hidden">${fullText}</span><button class="toggle-desc text-sky-500 hover:underline ml-1">Ver mais</button>`;
     }
 
-    async function renderProjects() { /* ... código original para renderizar projetos ... */ }
-    document.body.addEventListener('click', (e) => { /* ... código original para toggle da descrição ... */ });
-    document.body.addEventListener('click', (e) => { /* ... código original para abrir modais de projetos ... */ });
+    async function renderProjects() {
+        try {
+            const { data: projects, error: projectsError } = await supabase
+                .from('projects')
+                .select('id, name, description, status, client_id, profiles ( id, username, full_name )')
+                .not('status', 'eq', 'Rejeitado')
+                .order('created_at', { ascending: false });
+            if (projectsError) throw projectsError;
+            if (!projects || projects.length === 0) {
+                if (projectsTableBody) projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto ativo encontrado.</td></tr>`;
+                if (cardsContainer) cardsContainer.innerHTML = `<p class="text-center text-gray-500">Nenhum projeto ativo encontrado.</p>`;
+                return;
+            }
+            if (projectsTableBody) projectsTableBody.innerHTML = '';
+            if (cardsContainer) cardsContainer.innerHTML = '';
+            projects.forEach(project => {
+                const clientUsername = project.profiles ? (project.profiles.username || project.profiles.full_name || 'N/A') : 'N/A';
+                if (projectsTableBody) {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b dark:border-gray-700';
+                    tr.innerHTML = `
+                        <td class="p-4">${project.name || 'N/A'}</td>
+                        <td class="p-4">${clientUsername}</td>
+                        <td class="p-4">${buildDescription(project.description, 100)}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span>
+                        </td>
+                        <td class="p-4">
+                            <button data-id="${project.id}" data-name="${project.name || ''}" data-description="${project.description || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button>
+                            <button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button>
+                        </td>
+                    `;
+                    projectsTableBody.appendChild(tr);
+                }
+                if (cardsContainer) {
+                    const card = document.createElement('div');
+                    card.className = "p-4 border rounded-lg bg-white dark:bg-gray-800 shadow space-y-2";
+                    card.innerHTML = `
+                        <p><strong>Projeto:</strong> ${project.name || 'N/A'}</p>
+                        <p><strong>Cliente:</strong> ${clientUsername}</p>
+                        <p><strong>Descrição:</strong> ${buildDescription(project.description, 120)}</p>
+                        <p><strong>Status:</strong> <span class="px-2 py-1 rounded-full text-xs ${project.status === 'Aguardando Análise' ? 'bg-yellow-100 text-yellow-800' : project.status === 'Aprovado' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${project.status || 'N/A'}</span></p>
+                        <div class="pt-2">
+                            <button data-id="${project.id}" data-name="${project.name || ''}" data-description="${project.description || ''}" data-status="${project.status || ''}" class="edit-btn text-sky-500 hover:underline mr-3">Editar</button>
+                            <button data-id="${project.id}" data-name="${project.name || ''}" class="reject-btn text-red-500 hover:underline">Rejeitar</button>
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
+                }
+            });
+        } catch (error) {
+            console.error('Erro ao buscar projetos:', error);
+        }
+    }
+
+    document.body.addEventListener('click', (e) => {
+        if (e.target.classList.contains('toggle-desc')) {
+            const container = e.target.closest('td, p');
+            const short = container.querySelector('.short-desc');
+            const full = container.querySelector('.full-desc');
+            if (full.classList.contains('hidden')) {
+                short.classList.add('hidden');
+                full.classList.remove('hidden');
+                e.target.textContent = "Ver menos";
+            } else {
+                short.classList.remove('hidden');
+                full.classList.add('hidden');
+                e.target.textContent = "Ver mais";
+            }
+        }
+    });
+
+    document.body.addEventListener('click', (e) => {
+        if (e.target.classList.contains('edit-btn')) {
+            projectIdInput.value = e.target.dataset.id;
+            projectNameInput.value = e.target.dataset.name;
+            projectDescriptionInput.value = e.target.dataset.description;
+            projectStatusInput.value = e.target.dataset.status;
+            editModal.classList.remove('hidden');
+        }
+        if (e.target.classList.contains('reject-btn')) {
+            rejectProjectIdInput.value = e.target.dataset.id;
+            rejectProjectNameInput.value = e.target.dataset.name;
+            rejectMessageTextarea.value = `O projeto não se alinha com nossas especialidades atuais.`;
+            rejectModal.classList.remove('hidden');
+        }
+    });
+
     cancelEditButton.addEventListener('click', () => editModal.classList.add('hidden'));
     cancelRejectButton.addEventListener('click', () => rejectModal.classList.add('hidden'));
-    editForm.addEventListener('submit', async (e) => { /* ... código original do form de edição de projeto ... */ });
-    rejectForm.addEventListener('submit', async (e) => { /* ... código original do form de rejeição de projeto ... */ });
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const { error } = await supabase.from('projects').update({ name: projectNameInput.value, description: projectDescriptionInput.value, status: projectStatusInput.value }).eq('id', projectIdInput.value);
+        if (error) { showErrorToast(error.message); }
+        else { showSuccessToast('Projeto atualizado com sucesso!'); editModal.classList.add('hidden'); await renderProjects(); }
+    });
+
+    rejectForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const response = await fetch('/api/reject-project', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: rejectProjectIdInput.value, message: rejectMessageTextarea.value, adminId: user.id }) });
+        const result = await response.json();
+        if (!response.ok) { showErrorToast(result.message); }
+        else { showSuccessToast(result.message); rejectModal.classList.add('hidden'); await renderProjects(); }
+    });
+
 
     // --- LÓGICA DE QR CODES ---
     async function renderQRCodes() {
         qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Carregando...</td></tr>`;
         qrcodesTableBody.dataset.loaded = "true";
-
         const { data: links, error } = await supabase.from('qr_links').select(`id, slug, destino, descricao, qr_logs ( count )`).order('created_at', { ascending: false });
-        if (error) { /* ... tratamento de erro ... */ return; }
-        if (links.length === 0) { /* ... mensagem de nenhum QR Code ... */ return; }
-
+        if (error) {
+            showErrorToast('Erro ao carregar os QR Codes.');
+            console.error(error);
+            qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Erro ao carregar.</td></tr>`;
+            return;
+        }
+        if (links.length === 0) {
+            qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum QR Code criado ainda.</td></tr>`;
+            return;
+        }
         qrcodesTableBody.innerHTML = '';
         links.forEach(link => {
             const tr = document.createElement('tr');
@@ -145,13 +250,27 @@ export async function initAdmin() {
         });
     }
 
-    createQrBtn.addEventListener('click', () => { /* ... lógica para abrir modal de criação ... */ });
+    createQrBtn.addEventListener('click', () => {
+        qrCodeForm.reset();
+        editQrCodeId.value = '';
+        modalTitle.textContent = 'Criar Novo QR Code';
+        qrCodeModal.classList.remove('hidden');
+    });
+
     cancelQrCodeButton.addEventListener('click', () => qrCodeModal.classList.add('hidden'));
     closeViewQrButton.addEventListener('click', () => viewQrModal.classList.add('hidden'));
-    qrCodeForm.addEventListener('submit', async (e) => { /* ... lógica para criar/editar QR Code ... */ });
-    qrcodesTableBody.addEventListener('click', async (e) => { /* ... lógica dos botões de ação da tabela de QR Code (exceto stats) ... */ });
 
-    // --- LÓGICA DE ESTATÍSTICAS ---
+    qrCodeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(qrCodeForm);
+        const qrData = { slug: formData.get('slug'), destino: formData.get('destino'), descricao: formData.get('descricao'), admin_id: user.id };
+        const id = editQrCodeId.value;
+        const { error } = id ? await supabase.from('qr_links').update(qrData).eq('id', id) : await supabase.from('qr_links').insert(qrData);
+        if (error) { showErrorToast(error.message); }
+        else { showSuccessToast(`QR Code ${id ? 'atualizado' : 'criado'} com sucesso!`); qrCodeModal.classList.add('hidden'); await renderQRCodes(); }
+    });
+
+    // --- LÓGICA DE ESTATÍSTICAS E AÇÕES DA TABELA QR ---
     function parseUserAgent(ua) {
         if (!ua) return 'Desconhecido';
         if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
@@ -165,11 +284,13 @@ export async function initAdmin() {
     async function displayStatsForQR(qrId, slug) {
         statsModalTitle.textContent = `Estatísticas para: ${slug}`;
         statsModal.classList.remove('hidden');
-        statsTotalScans.textContent = '...'; /* ... resetar outros campos ... */
-
+        statsTotalScans.textContent = '...';
+        statsScans7Days.textContent = '...';
+        statsTopCountry.textContent = '...';
+        topCountriesList.innerHTML = '<li>Carregando...</li>';
+        topDevicesList.innerHTML = '<li>Carregando...</li>';
         const { data: logs, error } = await supabase.from('qr_logs').select('created_at, geo, user_agent').eq('qr_id', qrId).order('created_at', { ascending: true });
         if (error) { showErrorToast('Erro ao buscar estatísticas.'); return; }
-
         const totalScans = logs.length;
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -179,13 +300,11 @@ export async function initAdmin() {
         const deviceCounts = logs.reduce((acc, log) => { const device = parseUserAgent(log.user_agent); acc[device] = (acc[device] || 0) + 1; return acc; }, {});
         const topDevices = Object.entries(deviceCounts).sort((a, b) => b[1] - a[1]);
         const scansByDay = logs.reduce((acc, log) => { const day = new Date(log.created_at).toISOString().split('T')[0]; acc[day] = (acc[day] || 0) + 1; return acc; }, {});
-        
         statsTotalScans.textContent = totalScans;
         statsScans7Days.textContent = scansLast7Days;
         statsTopCountry.textContent = topCountries.length > 0 ? topCountries[0][0] : 'N/A';
         topCountriesList.innerHTML = topCountries.slice(0, 5).map(c => `<li>${c[0]}: <strong>${c[1]}</strong></li>`).join('');
         topDevicesList.innerHTML = topDevices.slice(0, 5).map(d => `<li>${d[0]}: <strong>${d[1]}</strong></li>`).join('');
-
         if (scansChart) { scansChart.destroy(); }
         scansChart = new Chart(scansOverTimeChartCanvas, {
             type: 'line',
@@ -194,16 +313,41 @@ export async function initAdmin() {
         });
     }
 
-    qrcodesTableBody.addEventListener('click', (e) => {
-        const statsButton = e.target.closest('.stats-qr-btn');
-        if (statsButton) {
-            const qrId = statsButton.dataset.id;
-            const slug = statsButton.dataset.slug;
-            displayStatsForQR(qrId, slug);
+    qrcodesTableBody.addEventListener('click', async (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+        const id = target.dataset.id;
+        if (target.classList.contains('delete-qr-btn')) {
+            if (confirm('Tem certeza que deseja excluir este QR Code? Todos os seus dados de scan serão perdidos.')) {
+                const { error } = await supabase.from('qr_links').delete().eq('id', id);
+                if (error) { showErrorToast(error.message); }
+                else { showSuccessToast('QR Code excluído com sucesso.'); await renderQRCodes(); }
+            }
+        } else if (target.classList.contains('edit-qr-btn')) {
+            const data = JSON.parse(target.dataset.fullData);
+            editQrCodeId.value = data.id;
+            document.getElementById('qrcode-slug').value = data.slug;
+            document.getElementById('qrcode-destino').value = data.destino;
+            document.getElementById('qrcode-descricao').value = data.descricao;
+            modalTitle.textContent = 'Editar QR Code';
+            qrCodeModal.classList.remove('hidden');
+        } else if (target.classList.contains('view-qr-btn')) {
+            const slug = target.closest('tr').querySelector('.font-mono').textContent;
+            const qrUrl = `${window.location.origin}/api/qr/${slug}`;
+            qrLinkDisplay.textContent = qrUrl;
+            QRCode.toCanvas(qrCanvas, qrUrl, { width: 256 }, (error) => {
+                if (error) console.error(error);
+                downloadQrLink.href = qrCanvas.toDataURL('image/png');
+            });
+            viewQrModal.classList.remove('hidden');
+        } else if (target.classList.contains('stats-qr-btn')) {
+            const slug = target.dataset.slug;
+            displayStatsForQR(id, slug);
         }
     });
 
     closeStatsModalButton.addEventListener('click', () => statsModal.classList.add('hidden'));
+
 
     // --- INICIALIZAÇÃO DA PÁGINA ---
     setActiveLink(navLinkProjects);
