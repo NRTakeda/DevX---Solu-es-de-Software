@@ -16,7 +16,6 @@ export async function initAdmin() {
     // --- SELEÇÃO DE ELEMENTOS DO DOM ---
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Elementos da Sidebar, Navegação e Conteúdo
     const sidebar = document.getElementById('admin-sidebar');
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -24,8 +23,6 @@ export async function initAdmin() {
     const navLinkQrCodes = document.getElementById('nav-link-qrcodes');
     const contentProjects = document.getElementById('content-projects');
     const contentQrCodes = document.getElementById('content-qrcodes');
-
-    // Elementos de Projetos
     const projectsTableBody = document.getElementById('projects-table-body');
     const cardsContainer = document.getElementById('projects-cards');
     const editModal = document.getElementById('edit-modal');
@@ -34,8 +31,6 @@ export async function initAdmin() {
     const rejectModal = document.getElementById('reject-modal');
     const rejectForm = document.getElementById('reject-project-form');
     const cancelRejectButton = document.getElementById('cancel-reject-button');
-
-    // Elementos de QR Codes
     const createQrBtn = document.getElementById('create-qr-btn');
     const qrcodesTableBody = document.getElementById('qrcodes-table-body');
     const qrCodeModal = document.getElementById('qrcode-modal');
@@ -47,8 +42,6 @@ export async function initAdmin() {
     const qrLinkDisplay = document.getElementById('qr-link-display');
     const downloadQrLink = document.getElementById('download-qr-link');
     const closeViewQrButton = document.getElementById('close-view-qr-button');
-
-    // Elementos do Modal de Estatísticas
     const statsModal = document.getElementById('stats-modal');
     const closeStatsModalButton = document.getElementById('close-stats-modal-button');
     const statsModalTitle = document.getElementById('stats-modal-title');
@@ -81,13 +74,9 @@ export async function initAdmin() {
     const toggleSidebar = () => {
         sidebar.classList.toggle('-translate-x-full');
         sidebarOverlay.classList.toggle('hidden');
-        document.body.classList.toggle('overflow-hidden');
     };
-    sidebarToggleBtn.addEventListener('click', toggleSidebar);
-    sidebarOverlay.addEventListener('click', toggleSidebar);
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', () => { if (window.innerWidth < 768) { toggleSidebar(); } });
-    });
+    if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
     
     // --- NAVEGAÇÃO INTERNA ---
     function showContent(elementToShow) {
@@ -118,6 +107,45 @@ export async function initAdmin() {
         const texts = { 'approved': 'Aprovado', 'pending': 'Pendente', 'rejected': 'Rejeitado' };
         return texts[status] || status;
     }
+    
+    function buildDescriptionNode(description, maxLength = 50) {
+        const container = document.createElement('div');
+        container.className = 'description-container';
+        
+        const textDiv = document.createElement('div');
+        const fullText = description || 'Sem descrição';
+        
+        if (fullText.length <= maxLength) {
+            textDiv.textContent = fullText;
+            textDiv.className = 'description-text';
+            container.appendChild(textDiv);
+            return container;
+        }
+        
+        const truncatedText = fullText.substring(0, maxLength) + '...';
+        textDiv.textContent = truncatedText;
+        textDiv.className = 'description-text';
+        
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = 'Ver mais';
+        toggleBtn.className = 'ver-mais-btn ml-1 text-blue-600 hover:text-blue-800 text-sm';
+        toggleBtn.type = 'button';
+        
+        toggleBtn.addEventListener('click', () => {
+            if (textDiv.textContent === truncatedText) {
+                textDiv.textContent = fullText;
+                toggleBtn.textContent = 'Ver menos';
+            } else {
+                textDiv.textContent = truncatedText;
+                toggleBtn.textContent = 'Ver mais';
+            }
+        });
+        
+        container.appendChild(textDiv);
+        container.appendChild(toggleBtn);
+        
+        return container;
+    }
 
     async function renderProjects() {
         try {
@@ -137,15 +165,106 @@ export async function initAdmin() {
                 const clientUsername = project.profiles ? (project.profiles.username || project.profiles.full_name || 'N/A') : 'N/A';
                 
                 const tr = document.createElement('tr');
-                tr.className = 'border-b dark:border-gray-700';
+                tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
                 tr.dataset.project = JSON.stringify(project);
-                tr.innerHTML = `<td class="p-4 font-semibold">${escapeHtml(project.name || 'N/A')}</td><td class="p-4">${escapeHtml(clientUsername)}</td><td class="p-4">${escapeHtml(project.description || 'Sem descrição')}</td><td class="p-4"><span class="px-2 py-1 rounded text-xs ${getStatusClass(project.status)}">${getStatusText(project.status)}</span></td><td class="p-4 space-x-2"><button onclick="editProject(this)" class="btn btn-sm btn-primary">Editar</button><button onclick="rejectProject(this)" class="btn btn-sm bg-red-600 hover:bg-red-700 text-white">Rejeitar</button></td>`;
+
+                const tdName = document.createElement('td');
+                tdName.className = 'p-4 font-semibold';
+                tdName.textContent = project.name || 'N/A';
+
+                const tdClient = document.createElement('td');
+                tdClient.className = 'p-4';
+                tdClient.textContent = clientUsername;
+
+                const tdDesc = document.createElement('td');
+                tdDesc.className = 'p-4';
+                tdDesc.appendChild(buildDescriptionNode(project.description, 50));
+
+                const tdStatus = document.createElement('td');
+                tdStatus.className = 'p-4';
+                const statusSpan = document.createElement('span');
+                statusSpan.className = `px-2 py-1 rounded text-xs ${getStatusClass(project.status)}`;
+                statusSpan.textContent = getStatusText(project.status);
+                tdStatus.appendChild(statusSpan);
+
+                const tdActions = document.createElement('td');
+                tdActions.className = 'p-4 space-x-2';
+                
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Editar';
+                editBtn.className = 'btn btn-sm btn-primary';
+                editBtn.onclick = () => window.editProject(editBtn);
+                
+                const rejectBtn = document.createElement('button');
+                rejectBtn.textContent = 'Rejeitar';
+                rejectBtn.className = 'btn btn-sm bg-red-600 hover:bg-red-700 text-white';
+                rejectBtn.onclick = () => window.rejectProject(rejectBtn);
+                
+                tdActions.appendChild(editBtn);
+                tdActions.appendChild(rejectBtn);
+
+                tr.appendChild(tdName);
+                tr.appendChild(tdClient);
+                tr.appendChild(tdDesc);
+                tr.appendChild(tdStatus);
+                tr.appendChild(tdActions);
+                
                 projectsTableBody.appendChild(tr);
 
                 const card = document.createElement('div');
                 card.className = "bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4";
                 card.dataset.project = JSON.stringify(project);
-                card.innerHTML = `<h3 class="font-bold text-lg mb-2">${escapeHtml(project.name || 'N/A')}</h3><p class="text-sm text-gray-600 dark:text-gray-400 mb-2"><strong>Cliente:</strong> ${escapeHtml(clientUsername)}</p><p class="text-sm mb-3"><strong>Descrição:</strong> ${escapeHtml(project.description || 'Sem descrição')}</p><div class="flex justify-between items-center"><span class="px-2 py-1 rounded text-xs ${getStatusClass(project.status)}">${getStatusText(project.status)}</span><div class="space-x-2"><button onclick="editProject(this)" class="btn btn-sm btn-primary">Editar</button><button onclick="rejectProject(this)" class="btn btn-sm bg-red-600 hover:bg-red-700 text-white">Rejeitar</button></div></div>`;
+                
+                const title = document.createElement('h3');
+                title.className = 'font-bold text-lg mb-2';
+                title.textContent = project.name || 'N/A';
+                
+                const client = document.createElement('p');
+                client.className = 'text-sm text-gray-600 dark:text-gray-400 mb-2';
+                client.innerHTML = `<strong>Cliente:</strong> ${escapeHtml(clientUsername)}`;
+                
+                const descContainer = document.createElement('div');
+                descContainer.className = 'mb-3 text-sm';
+                const descLabel = document.createElement('strong');
+                descLabel.textContent = 'Descrição:';
+                const descContent = document.createElement('div');
+                descContent.className = 'mt-1';
+                descContent.appendChild(buildDescriptionNode(project.description, 50));
+                
+                descContainer.appendChild(descLabel);
+                descContainer.appendChild(descContent);
+                
+                const footer = document.createElement('div');
+                footer.className = 'flex justify-between items-center mt-4';
+                
+                const statusSpanMobile = document.createElement('span');
+                statusSpanMobile.className = `px-2 py-1 rounded text-xs ${getStatusClass(project.status)}`;
+                statusSpanMobile.textContent = getStatusText(project.status);
+                
+                const actions = document.createElement('div');
+                actions.className = 'space-x-2';
+                
+                const editBtnMobile = document.createElement('button');
+                editBtnMobile.textContent = 'Editar';
+                editBtnMobile.className = 'btn btn-sm btn-primary';
+                editBtnMobile.onclick = () => window.editProject(editBtnMobile);
+                
+                const rejectBtnMobile = document.createElement('button');
+                rejectBtnMobile.textContent = 'Rejeitar';
+                rejectBtnMobile.className = 'btn btn-sm bg-red-600 hover:bg-red-700 text-white';
+                rejectBtnMobile.onclick = () => window.rejectProject(rejectBtnMobile);
+                
+                actions.appendChild(editBtnMobile);
+                actions.appendChild(rejectBtnMobile);
+                
+                footer.appendChild(statusSpanMobile);
+                footer.appendChild(actions);
+                
+                card.appendChild(title);
+                card.appendChild(client);
+                card.appendChild(descContainer);
+                card.appendChild(footer);
+                
                 cardsContainer.appendChild(card);
             });
         } catch (error) {
@@ -205,7 +324,7 @@ export async function initAdmin() {
                 const tr = document.createElement('tr');
                 tr.className = 'border-b dark:border-gray-700';
                 tr.dataset.qrLink = JSON.stringify(link);
-                tr.innerHTML = `<td class="p-4 text-left font-mono text-sm">${escapeHtml(link.slug)}</td><td class="p-4 text-left break-all">${escapeHtml(link.destino)}</td><td class="p-4 text-left">${escapeHtml(link.descricao || '---')}</td><td class="p-4 text-center font-semibold">${link.qr_logs[0]?.count || 0}</td><td class="p-4 text-left space-x-2"><button onclick="statsQrCode(this)" class="stats-qr-btn btn btn-sm bg-blue-600 text-white">📊</button><button onclick="editQrCode(this)" class="edit-qr-btn btn btn-sm bg-green-600 text-white">✏️</button><button onclick="deleteQrCode(this)" class="delete-qr-btn btn btn-sm bg-red-600 text-white">🗑️</button><button onclick="viewQrCode(this)" class="view-qr-btn btn btn-sm bg-purple-600 text-white">👁️</button></td>`;
+                tr.innerHTML = `<td class="p-4 text-left font-mono text-sm">${escapeHtml(link.slug)}</td><td class="p-4 text-left break-all">${escapeHtml(link.destino)}</td><td class="p-4 text-left">${escapeHtml(link.descricao || '---')}</td><td class="p-4 text-center font-semibold">${link.qr_logs[0]?.count || 0}</td><td class="p-4 text-left space-x-2"><button onclick="statsQrCode(this)" class="stats-qr-btn btn btn-sm bg-blue-600 text-white">📊</button><button onclick="viewQrCode(this)" class="view-qr-btn btn btn-sm bg-purple-600 text-white">👁️</button><button onclick="editQrCode(this)" class="edit-qr-btn btn btn-sm bg-green-600 text-white">✏️</button><button onclick="deleteQrCode(this)" class="delete-qr-btn btn btn-sm bg-red-600 text-white">🗑️</button></td>`;
                 qrcodesTableBody.appendChild(tr);
             });
         } catch(err) {
@@ -214,7 +333,7 @@ export async function initAdmin() {
         }
     }
 
-    createQrBtn.addEventListener('click', () => { qrCodeForm.reset(); modalTitle.textContent = 'Criar Novo QR Code'; openModal(qrCodeModal); });
+    createQrBtn.addEventListener('click', () => { qrCodeForm.reset(); qrCodeForm.querySelector('#edit-qrcode-id').value = ''; modalTitle.textContent = 'Criar Novo QR Code'; openModal(qrCodeModal); });
     cancelQrCodeButton.addEventListener('click', () => closeModal(qrCodeModal));
     closeViewQrButton.addEventListener('click', () => closeModal(viewQrModal));
     

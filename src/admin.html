@@ -1,187 +1,184 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="h-full">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel Admin</title>
-  <link href="/dist/output.css" rel="stylesheet" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel Admin | DevX</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<body class="h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
 
-  <!-- Header e Footer são carregados dinamicamente -->
-  <div id="header-placeholder"></div>
+    <div id="header-placeholder"></div>
 
-  <!-- Overlay para Mobile -->
-  <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+    <div class="flex flex-grow overflow-hidden">
+        <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"></div>
 
-  <!-- Sidebar -->
-  <aside id="admin-sidebar" class="fixed top-0 left-0 w-64 h-full bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full md:translate-x-0 transition-transform z-50">
-    <div class="p-4 border-b dark:border-gray-700 flex items-center justify-between">
-      <h2 class="text-xl font-bold">Admin</h2>
-      <button id="sidebar-toggle-btn" class="md:hidden text-gray-700 dark:text-gray-300 focus:outline-none">☰</button>
+        <aside id="admin-sidebar" class="fixed top-0 left-0 w-64 h-full bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full md:translate-x-0 transition-transform z-50 pt-20">
+            <nav class="mt-4 space-y-2 px-2">
+                <a href="#" id="nav-link-projects" class="nav-link flex items-center px-4 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    Projetos
+                </a>
+                <a href="#" id="nav-link-qrcodes" class="nav-link flex items-center px-4 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" transform="rotate(45 12 12) scale(0.8)"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z"></path></svg>
+                    QR Codes
+                </a>
+            </nav>
+        </aside>
+
+        <main class="md:ml-64 p-6 space-y-8 flex-grow overflow-y-auto pt-24">
+            
+            <button id="sidebar-toggle-btn" type="button" class="fixed top-20 left-2 inline-flex items-center p-2 text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 z-30">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+            </button>
+            
+            <section id="content-projects">
+                <h1 class="text-2xl font-bold mb-4">Gerenciamento de Projetos</h1>
+                <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Projeto</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cliente</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descrição</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                    </table>
+                </div>
+                <div id="projects-cards" class="grid md:hidden gap-4"></div>
+            </section>
+
+            <section id="content-qrcodes" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-2xl font-bold">Gerenciamento de QR Codes</h1>
+                    <button id="create-qr-btn" class="btn btn-primary">+ Criar QR Code</button>
+                </div>
+                <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Slug</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Destino</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descrição</th>
+                                <th class="p-4 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Scans</th>
+                                <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qrcodes-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
-    <nav class="mt-4 space-y-2">
-      <a href="#" id="nav-link-projects" class="nav-link block px-4 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">Projetos</a>
-      <a href="#" id="nav-link-qrcodes" class="nav-link block px-4 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">QR Codes</a>
-    </nav>
-  </aside>
 
-  <!-- Conteúdo principal -->
-  <main class="md:ml-64 p-6 space-y-8">
-    <!-- Seção Projetos -->
-    <section id="content-projects">
-      <h1 class="text-2xl font-bold mb-4">Gerenciamento de Projetos</h1>
-      <div class="hidden md:block">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="bg-gray-100 dark:bg-gray-700">
-              <th class="p-4 text-left">Projeto</th>
-              <th class="p-4 text-left">Cliente</th>
-              <th class="p-4 text-left">Descrição</th>
-              <th class="p-4 text-left">Status</th>
-              <th class="p-4 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="projects-table-body"></tbody>
-        </table>
-      </div>
-      <div id="projects-cards" class="grid md:hidden gap-4"></div>
+    <div id="footer-placeholder"></div>
+
+    <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-lg">
+            <h3 class="text-2xl font-bold mb-4">Editar Projeto</h3>
+            <form id="edit-project-form">
+                <input type="hidden" id="edit-project-id" name="id">
+                <div class="mb-4">
+                    <label for="edit-project-name" class="block mb-2 text-sm font-semibold">Nome do Projeto</label>
+                    <input type="text" id="edit-project-name" name="name" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div class="mb-4">
+                    <label for="edit-project-description" class="block mb-2 text-sm font-semibold">Descrição</label>
+                    <textarea id="edit-project-description" name="description" rows="4" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="edit-project-status" class="block mb-2 text-sm font-semibold">Status</label>
+                    <input type="text" id="edit-project-status" name="status" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" id="cancel-edit-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
     </section>
 
-    <!-- Seção QR Codes -->
-    <section id="content-qrcodes" class="hidden">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Gerenciamento de QR Codes</h1>
-        <button id="create-qr-btn" class="btn btn-primary">+ Criar QR Code</button>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="bg-gray-100 dark:bg-gray-700">
-              <th class="p-4 text-left">Slug</th>
-              <th class="p-4 text-left">Destino</th>
-              <th class="p-4 text-left">Descrição</th>
-              <th class="p-4 text-center">Scans</th>
-              <th class="p-4 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="qrcodes-table-body"></tbody>
-        </table>
-      </div>
+    <section id="reject-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-2xl">
+            <h3 class="text-2xl font-bold mb-4 text-red-600">Rejeitar Projeto</h3>
+            <form id="reject-project-form">
+                <input type="hidden" id="reject-project-id" name="id">
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-semibold">Projeto:</label>
+                    <input type="text" id="reject-project-name" name="project_name" readonly class="w-full p-2 border border-gray-300 rounded bg-gray-100 dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div class="mb-6">
+                    <label for="reject-message" class="block mb-2 text-sm font-semibold">Mensagem de Rejeição</label>
+                    <textarea id="reject-message" name="message" rows="8" required class="w-full p-3 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"></textarea>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancel-reject-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
+                    <button type="submit" class="btn bg-red-600 hover:bg-red-700 text-white">Confirmar Rejeição</button>
+                </div>
+            </form>
+        </div>
     </section>
-  </main>
 
-  <!-- Footer -->
-  <div id="footer-placeholder"></div>
+    <section id="qrcode-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-lg">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4">Criar Novo QR Code</h3>
+            <form id="qrcode-form">
+                <input type="hidden" id="edit-qrcode-id" name="id">
+                <div class="mb-4">
+                    <label for="qrcode-slug" class="block mb-2 text-sm font-semibold">Slug</label>
+                    <input type="text" id="qrcode-slug" name="slug" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
+                </div>
+                <div class="mb-4">
+                    <label for="qrcode-destino" class="block mb-2 text-sm font-semibold">URL de Destino</label>
+                    <input type="url" id="qrcode-destino" name="destino" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" required>
+                </div>
+                <div class="mb-6">
+                    <label for="qrcode-descricao" class="block mb-2 text-sm font-semibold">Descrição</label>
+                    <textarea id="qrcode-descricao" name="descricao" rows="3" class="w-full p-2 border border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"></textarea>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancel-qrcode-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </section>
 
-  <!-- Modais -->
-  <!-- Editar Projeto -->
-  <section id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="card p-8 w-full max-w-lg">
-      <h3 class="text-2xl font-bold mb-4">Editar Projeto</h3>
-      <form id="edit-project-form">
-        <input type="hidden" id="edit-project-id" name="id">
-        <div class="mb-4">
-          <label for="edit-project-name" class="block mb-2 text-sm font-semibold">Nome do Projeto</label>
-          <input type="text" id="edit-project-name" name="name" class="w-full p-2 border border-gray-300 rounded">
+    <section id="view-qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md text-center">
+            <h3 class="text-xl font-bold mb-4">QR Code</h3>
+            <canvas id="qr-canvas" class="mx-auto mb-4"></canvas>
+            <p id="qr-link-display" class="break-all text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
+            <div class="flex justify-center gap-4">
+                <a id="download-qr-link" download="qrcode.png" class="btn btn-primary">Baixar</a>
+                <button id="close-view-qr-button" type="button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Fechar</button>
+            </div>
         </div>
-        <div class="mb-4">
-          <label for="edit-project-description" class="block mb-2 text-sm font-semibold">Descrição</label>
-          <textarea id="edit-project-description" name="description" rows="4" class="w-full p-2 border border-gray-300 rounded"></textarea>
-        </div>
-        <div class="mb-4">
-          <label for="edit-project-status" class="block mb-2 text-sm font-semibold">Status</label>
-          <input type="text" id="edit-project-status" name="status" class="w-full p-2 border border-gray-300 rounded">
-        </div>
-        <div class="flex justify-end gap-4">
-          <button type="button" id="cancel-edit-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-        </div>
-      </form>
-    </div>
-  </section>
+    </section>
 
-  <!-- Rejeitar Projeto -->
-  <section id="reject-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="card p-8 w-full max-w-2xl">
-      <h3 class="text-2xl font-bold mb-4 text-red-600">Rejeitar Projeto</h3>
-      <form id="reject-project-form">
-        <input type="hidden" id="reject-project-id" name="id">
-        <div class="mb-4">
-          <label class="block mb-2 text-sm font-semibold">Projeto:</label>
-          <input type="text" id="reject-project-name" name="project_name" readonly class="w-full p-2 border border-gray-300 rounded bg-gray-100">
+    <section id="stats-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-3xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="stats-modal-title" class="text-2xl font-bold">Estatísticas</h3>
+                <button id="close-stats-modal-button" type="button" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div class="grid md:grid-cols-3 gap-4 mb-6">
+                <div><p class="text-sm text-gray-500">Total Scans</p><p id="stats-total-scans" class="text-2xl font-bold">0</p></div>
+                <div><p class="text-sm text-gray-500">Últimos 7 dias</p><p id="stats-scans-7-days" class="text-2xl font-bold">0</p></div>
+                <div><p class="text-sm text-gray-500">País Top 1</p><p id="stats-top-country" class="text-2xl font-bold">N/A</p></div>
+            </div>
+            <div class="h-64 mb-6"><canvas id="scans-over-time-chart"></canvas></div>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div><h4 class="font-semibold mb-2">Top Países</h4><ul id="stats-top-countries-list" class="space-y-1 text-sm"></ul></div>
+                <div><h4 class="font-semibold mb-2">Top Dispositivos</h4><ul id="stats-top-devices-list" class="space-y-1 text-sm"></ul></div>
+            </div>
         </div>
-        <div class="mb-6">
-          <label for="reject-message" class="block mb-2 text-sm font-semibold">Mensagem de Rejeição</label>
-          <textarea id="reject-message" name="message" rows="8" required class="w-full p-3 border border-gray-300 rounded"></textarea>
-        </div>
-        <div class="flex justify-end gap-4">
-          <button type="button" id="cancel-reject-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
-          <button type="submit" class="btn bg-red-600 hover:bg-red-700 text-white">Confirmar Rejeição</button>
-        </div>
-      </form>
-    </div>
-  </section>
+    </section>
 
-  <!-- Criar/Editar QR Code -->
-  <section id="qrcode-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="card p-8 w-full max-w-lg">
-      <h3 id="modal-title" class="text-2xl font-bold mb-4">Criar Novo QR Code</h3>
-      <form id="qrcode-form">
-        <input type="hidden" id="edit-qrcode-id" name="id">
-        <div class="mb-4">
-          <label for="qrcode-slug" class="block mb-2 text-sm font-semibold">Slug</label>
-          <input type="text" id="qrcode-slug" name="slug" class="w-full p-2 border border-gray-300 rounded" required>
-        </div>
-        <div class="mb-4">
-          <label for="qrcode-destino" class="block mb-2 text-sm font-semibold">URL de Destino</label>
-          <input type="url" id="qrcode-destino" name="destino" class="w-full p-2 border border-gray-300 rounded" required>
-        </div>
-        <div class="mb-6">
-          <label for="qrcode-descricao" class="block mb-2 text-sm font-semibold">Descrição</label>
-          <textarea id="qrcode-descricao" name="descricao" rows="3" class="w-full p-2 border border-gray-300 rounded"></textarea>
-        </div>
-        <div class="flex justify-end gap-4">
-          <button type="button" id="cancel-qrcode-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar</button>
-        </div>
-      </form>
-    </div>
-  </section>
-
-  <!-- Visualizar QR Code -->
-  <section id="view-qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="card p-8 w-full max-w-md text-center">
-      <h3 class="text-xl font-bold mb-4">QR Code</h3>
-      <canvas id="qr-canvas" class="mx-auto mb-4"></canvas>
-      <p id="qr-link-display" class="break-all text-sm text-gray-600 mb-4"></p>
-      <div class="flex justify-center gap-4">
-        <a id="download-qr-link" download="qrcode.png" class="btn btn-primary">Baixar</a>
-        <button id="close-view-qr-button" class="btn bg-gray-500 hover:bg-gray-600 text-white">Fechar</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Estatísticas -->
-  <section id="stats-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="card p-8 w-full max-w-3xl">
-      <div class="flex justify-between items-center mb-4">
-        <h3 id="stats-modal-title" class="text-2xl font-bold">Estatísticas</h3>
-        <button id="close-stats-modal-button" class="text-gray-500 hover:text-gray-800">✖</button>
-      </div>
-      <div class="grid md:grid-cols-3 gap-4 mb-6">
-        <div><p class="text-sm text-gray-500">Total Scans</p><p id="stats-total-scans" class="text-xl font-bold">0</p></div>
-        <div><p class="text-sm text-gray-500">Últimos 7 dias</p><p id="stats-scans-7-days" class="text-xl font-bold">0</p></div>
-        <div><p class="text-sm text-gray-500">País Top 1</p><p id="stats-top-country" class="text-xl font-bold">N/A</p></div>
-      </div>
-      <div class="h-64 mb-6"><canvas id="scans-over-time-chart"></canvas></div>
-      <div class="grid md:grid-cols-2 gap-6">
-        <div><h4 class="font-semibold mb-2">Top Países</h4><ul id="stats-top-countries-list" class="space-y-1"></ul></div>
-        <div><h4 class="font-semibold mb-2">Top Dispositivos</h4><ul id="stats-top-devices-list" class="space-y-1"></ul></div>
-      </div>
-    </div>
-  </section>
-
-  <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/main.js"></script>
 </body>
 </html>
