@@ -435,3 +435,41 @@ button:disabled {
 #admin-sidebar .nav-link.active svg {
     color: var(--color-accent-blue);
 }
+
+/*
+============================================================
+        NOVOS ESTILOS DE POLIMENTO PARA O PAINEL ADMIN
+============================================================
+*/
+
+/* Emblema de Status (pequeno e arredondado) */
+.status-badge {
+    @apply inline-block px-2.5 py-1 text-xs font-medium rounded-full;
+}
+
+/* Botão de Ação (pequeno, circular, com ícone) */
+.btn-icon {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-full transition-transform duration-200;
+}
+
+.btn-icon:hover {
+    @apply transform scale-110;
+}
+
+.btn-icon svg {
+    @apply w-4 h-4;
+}
+
+/* Variações de cor para os botões de ícone */
+.btn-icon-primary {
+    @apply bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900;
+}
+.btn-icon-danger {
+    @apply bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900;
+}
+.btn-icon-info {
+    @apply bg-sky-100 text-sky-600 hover:bg-sky-200 dark:bg-sky-900/50 dark:text-sky-300 dark:hover:bg-sky-900;
+}
+.btn-icon-secondary {
+    @apply bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:hover:bg-purple-900;
+}

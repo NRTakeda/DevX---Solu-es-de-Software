@@ -88,9 +88,9 @@ export async function initAdmin() {
         elementToShow.classList.remove('hidden');
     }
     function setActiveLink(activeLink) {
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('bg-gray-200', 'dark:bg-gray-700'));
-        activeLink.classList.add('bg-gray-200', 'dark:bg-gray-700');
-    }
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    activeLink.classList.add('active');
+}
     navLinkProjects.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkProjects); showContent(contentProjects); });
     navLinkQrCodes.addEventListener('click', (e) => { e.preventDefault(); setActiveLink(navLinkQrCodes); showContent(contentQrCodes); if (!qrcodesTableBody.dataset.loaded) renderQRCodes(); });
 
@@ -153,93 +153,92 @@ export async function initAdmin() {
     }
 
     async function renderProjects() {
-        try {
-            const { data: projects, error: projectsError } = await supabase.from('projects').select('id, name, description, status, client_id, profiles ( id, username, full_name )').not('status', 'eq', 'Rejeitado').order('created_at', { ascending: false });
-            if (projectsError) throw projectsError;
-            
-            projectsTableBody.innerHTML = '';
-            cardsContainer.innerHTML = '';
+    try {
+        const { data: projects, error: projectsError } = await supabase.from('projects').select('id, name, description, status, client_id, profiles ( id, username, full_name )').not('status', 'eq', 'Rejeitado').order('created_at', { ascending: false });
+        if (projectsError) throw projectsError;
+        
+        projectsTableBody.innerHTML = '';
+        cardsContainer.innerHTML = '';
 
-            if (!projects || projects.length === 0) {
-                projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto ativo encontrado.</td></tr>`;
-                cardsContainer.innerHTML = `<p class="text-center text-gray-500">Nenhum projeto ativo encontrado.</p>`;
-                return;
-            }
-
-            projects.forEach(project => {
-                const clientUsername = project.profiles ? (project.profiles.username || project.profiles.full_name || 'N/A') : 'N/A';
-                
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
-                tr.dataset.project = JSON.stringify(project);
-
-                const tdName = document.createElement('td');
-                tdName.className = 'p-4 font-semibold';
-                tdName.textContent = project.name || 'N/A';
-
-                const tdClient = document.createElement('td');
-                tdClient.className = 'p-4';
-                tdClient.textContent = clientUsername;
-
-                const tdDesc = document.createElement('td');
-                tdDesc.className = 'p-4 text-sm';
-                tdDesc.appendChild(buildDescriptionNode(project.description, 50));
-
-                const tdStatus = document.createElement('td');
-                tdStatus.className = 'p-4';
-                const statusSpan = document.createElement('span');
-                statusSpan.className = `px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(project.status)}`;
-                statusSpan.textContent = getStatusText(project.status);
-                tdStatus.appendChild(statusSpan);
-
-                const tdActions = document.createElement('td');
-                tdActions.className = 'p-4 space-x-2';
-                
-                const editBtn = document.createElement('button');
-                editBtn.textContent = 'Editar';
-                editBtn.className = 'btn btn-sm btn-primary';
-                editBtn.onclick = () => window.editProject(editBtn);
-                
-                const rejectBtn = document.createElement('button');
-                rejectBtn.textContent = 'Rejeitar';
-                rejectBtn.className = 'btn btn-sm bg-red-600 hover:bg-red-700 text-white';
-                rejectBtn.onclick = () => window.rejectProject(rejectBtn);
-                
-                tdActions.appendChild(editBtn);
-                tdActions.appendChild(rejectBtn);
-
-                tr.appendChild(tdName);
-                tr.appendChild(tdClient);
-                tr.appendChild(tdDesc);
-                tr.appendChild(tdStatus);
-                tr.appendChild(tdActions);
-                
-                projectsTableBody.appendChild(tr);
-
-                const card = document.createElement('div');
-                card.className = "bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4";
-                card.dataset.project = JSON.stringify(project);
-                
-                card.innerHTML = `
-                    <h3 class="font-bold text-lg mb-2">${escapeHtml(project.name || 'N/A')}</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2"><strong>Cliente:</strong> ${escapeHtml(clientUsername)}</p>
-                    <div class="description-wrapper text-sm mb-3"></div>
-                    <div class="flex justify-between items-center mt-4">
-                        <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(project.status)}">${getStatusText(project.status)}</span>
-                        <div class="space-x-2">
-                            <button class="btn btn-sm btn-primary" onclick="window.editProject(this)">Editar</button>
-                            <button class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick="window.rejectProject(this)">Rejeitar</button>
-                        </div>
-                    </div>
-                `;
-                card.querySelector('.description-wrapper').appendChild(buildDescriptionNode(project.description, 50));
-                cardsContainer.appendChild(card);
-            });
-        } catch (error) {
-            console.error('Erro ao buscar projetos:', error);
-            showErrorToast('Erro ao carregar projetos.');
+        if (!projects || projects.length === 0) {
+            projectsTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum projeto ativo encontrado.</td></tr>`;
+            cardsContainer.innerHTML = `<p class="text-center text-gray-500">Nenhum projeto ativo encontrado.</p>`;
+            return;
         }
+
+        projects.forEach(project => {
+            const clientUsername = project.profiles ? (project.profiles.username || project.profiles.full_name || 'N/A') : 'N/A';
+            
+            // === TABELA (DESKTOP) ===
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
+            tr.dataset.project = JSON.stringify(project);
+
+            const tdName = document.createElement('td');
+            tdName.className = 'p-4 font-semibold';
+            tdName.textContent = project.name || 'N/A';
+
+            const tdClient = document.createElement('td');
+            tdClient.className = 'p-4';
+            tdClient.textContent = clientUsername;
+
+            const tdDesc = document.createElement('td');
+            tdDesc.className = 'p-4 text-sm';
+            tdDesc.appendChild(buildDescriptionNode(project.description, 50));
+
+            const tdStatus = document.createElement('td');
+            tdStatus.className = 'p-4';
+            const statusBadge = document.createElement('span');
+            statusBadge.className = `status-badge ${getStatusClass(project.status)}`;
+            statusBadge.textContent = getStatusText(project.status);
+            tdStatus.appendChild(statusBadge);
+
+            const tdActions = document.createElement('td');
+            tdActions.className = 'p-4 space-x-2';
+            
+            const editBtn = document.createElement('button');
+            editBtn.title = 'Editar';
+            editBtn.className = 'btn-icon btn-icon-primary';
+            editBtn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"></path></svg>`;
+            editBtn.onclick = () => window.editProject(editBtn);
+            
+            const rejectBtn = document.createElement('button');
+            rejectBtn.title = 'Rejeitar';
+            rejectBtn.className = 'btn-icon btn-icon-danger';
+            rejectBtn.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>`;
+            rejectBtn.onclick = () => window.rejectProject(rejectBtn);
+            
+            tdActions.appendChild(editBtn);
+            tdActions.appendChild(rejectBtn);
+
+            tr.append(tdName, tdClient, tdDesc, tdStatus, tdActions);
+            projectsTableBody.appendChild(tr);
+
+            // === CARDS (MOBILE) ===
+            const card = document.createElement('div');
+            card.className = "bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4";
+            card.dataset.project = JSON.stringify(project);
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-bold text-lg">${escapeHtml(project.name || 'N/A')}</h3>
+                    <span class="status-badge ${getStatusClass(project.status)}">${getStatusText(project.status)}</span>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3"><strong>Cliente:</strong> ${escapeHtml(clientUsername)}</p>
+                <div class="description-wrapper text-sm mb-4"></div>
+                <div class="flex justify-end items-center mt-4 space-x-2">
+                    <button class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick="window.rejectProject(this)">Rejeitar</button>
+                    <button class="btn btn-sm btn-primary" onclick="window.editProject(this)">Editar</button>
+                </div>
+            `;
+            card.querySelector('.description-wrapper').appendChild(buildDescriptionNode(project.description, 80));
+            cardsContainer.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Erro ao buscar projetos:', error);
+        showErrorToast('Erro ao carregar projetos.');
     }
+}
     
     cancelEditButton.addEventListener('click', () => closeModal(editModal));
     cancelRejectButton.addEventListener('click', () => closeModal(rejectModal));
@@ -281,25 +280,44 @@ export async function initAdmin() {
 
     // --- LÓGICA DE QR CODES ---
     async function renderQRCodes() {
-        qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Carregando...</td></tr>`;
-        qrcodesTableBody.dataset.loaded = "true";
-        try {
-            const { data: links, error } = await supabase.from('qr_links').select(`id, slug, destino, descricao, qr_logs ( count )`).order('created_at', { ascending: false });
-            if (error) throw error;
-            if (!links || links.length === 0) { qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum QR Code criado ainda.</td></tr>`; return; }
-            qrcodesTableBody.innerHTML = '';
-            links.forEach(link => {
-                const tr = document.createElement('tr');
-                tr.className = 'border-b dark:border-gray-700';
-                tr.dataset.qrLink = JSON.stringify(link);
-                tr.innerHTML = `<td class="p-4 text-left font-mono text-sm">${escapeHtml(link.slug)}</td><td class="p-4 text-left break-all">${escapeHtml(link.destino)}</td><td class="p-4 text-left">${escapeHtml(link.descricao || '---')}</td><td class="p-4 text-center font-semibold">${link.qr_logs[0]?.count || 0}</td><td class="p-4 text-left space-x-2"><button onclick="statsQrCode(this)" class="stats-qr-btn btn btn-sm bg-blue-600 text-white">📊</button><button onclick="viewQrCode(this)" class="view-qr-btn btn btn-sm bg-purple-600 text-white">👁️</button><button onclick="editQrCode(this)" class="edit-qr-btn btn btn-sm bg-green-600 text-white">✏️</button><button onclick="deleteQrCode(this)" class="delete-qr-btn btn btn-sm bg-red-600 text-white">🗑️</button></td>`;
-                qrcodesTableBody.appendChild(tr);
-            });
-        } catch(err) {
-            console.error('Erro ao carregar QR Codes:', err);
-            showErrorToast('Erro ao carregar QR Codes.');
-        }
+    qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Carregando...</td></tr>`;
+    qrcodesTableBody.dataset.loaded = "true";
+    try {
+        const { data: links, error } = await supabase.from('qr_links').select(`id, slug, destino, descricao, qr_logs ( count )`).order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!links || links.length === 0) { qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum QR Code criado ainda.</td></tr>`; return; }
+        qrcodesTableBody.innerHTML = '';
+        links.forEach(link => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700';
+            tr.dataset.qrLink = JSON.stringify(link);
+            tr.innerHTML = `
+                <td class="p-4 text-left font-mono text-sm">${escapeHtml(link.slug)}</td>
+                <td class="p-4 text-left break-all text-sm">${escapeHtml(link.destino)}</td>
+                <td class="p-4 text-left text-sm">${escapeHtml(link.descricao || '---')}</td>
+                <td class="p-4 text-center font-semibold text-lg">${link.qr_logs[0]?.count || 0}</td>
+                <td class="p-4 text-left space-x-2">
+                    <button title="Estatísticas" onclick="statsQrCode(this)" class="btn-icon btn-icon-info">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    </button>
+                    <button title="Ver QR Code" onclick="viewQrCode(this)" class="btn-icon btn-icon-secondary">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V8m0 0h-4m4 0l-5-5M4 16v4m0 0h4m-4 0l5-5m11 1v-4m0 0h-4m4 0l-5 5"></path></svg>
+                    </button>
+                    <button title="Editar" onclick="editQrCode(this)" class="btn-icon btn-icon-primary">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"></path></svg>
+                    </button>
+                    <button title="Excluir" onclick="deleteQrCode(this)" class="btn-icon btn-icon-danger">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </td>
+            `;
+            qrcodesTableBody.appendChild(tr);
+        });
+    } catch(err) {
+        console.error('Erro ao carregar QR Codes:', err);
+        showErrorToast('Erro ao carregar QR Codes.');
     }
+}
 
     createQrBtn.addEventListener('click', () => { qrCodeForm.reset(); qrCodeForm.querySelector('#edit-qrcode-id').value = ''; modalTitle.textContent = 'Criar Novo QR Code'; openModal(qrCodeModal); });
     cancelQrCodeButton.addEventListener('click', () => closeModal(qrCodeModal));
