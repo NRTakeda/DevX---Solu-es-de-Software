@@ -74,9 +74,13 @@ export async function initAdmin() {
     const toggleSidebar = () => {
         sidebar.classList.toggle('-translate-x-full');
         sidebarOverlay.classList.toggle('hidden');
+        document.body.classList.toggle('overflow-hidden');
     };
     if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
     if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => { if (window.innerWidth < 768) { toggleSidebar(); } });
+    });
     
     // --- NAVEGAÇÃO INTERNA ---
     function showContent(elementToShow) {
@@ -104,7 +108,7 @@ export async function initAdmin() {
         return classes[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
     function getStatusText(status) {
-        const texts = { 'approved': 'Aprovado', 'pending': 'Pendente', 'rejected': 'Rejeitado' };
+        const texts = { 'approved': 'Aprovado', 'pending': 'Aguardando Análise', 'rejected': 'Rejeitado' };
         return texts[status] || status;
     }
     
@@ -128,10 +132,11 @@ export async function initAdmin() {
         
         const toggleBtn = document.createElement('button');
         toggleBtn.textContent = 'Ver mais';
-        toggleBtn.className = 'ver-mais-btn ml-1 text-blue-600 hover:text-blue-800 text-sm';
+        toggleBtn.className = 'ver-mais-btn ml-1 text-blue-600 hover:text-blue-800 text-sm font-semibold';
         toggleBtn.type = 'button';
         
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (textDiv.textContent === truncatedText) {
                 textDiv.textContent = fullText;
                 toggleBtn.textContent = 'Ver menos';
@@ -177,13 +182,13 @@ export async function initAdmin() {
                 tdClient.textContent = clientUsername;
 
                 const tdDesc = document.createElement('td');
-                tdDesc.className = 'p-4';
+                tdDesc.className = 'p-4 text-sm';
                 tdDesc.appendChild(buildDescriptionNode(project.description, 50));
 
                 const tdStatus = document.createElement('td');
                 tdStatus.className = 'p-4';
                 const statusSpan = document.createElement('span');
-                statusSpan.className = `px-2 py-1 rounded text-xs ${getStatusClass(project.status)}`;
+                statusSpan.className = `px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(project.status)}`;
                 statusSpan.textContent = getStatusText(project.status);
                 tdStatus.appendChild(statusSpan);
 
@@ -215,56 +220,19 @@ export async function initAdmin() {
                 card.className = "bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4";
                 card.dataset.project = JSON.stringify(project);
                 
-                const title = document.createElement('h3');
-                title.className = 'font-bold text-lg mb-2';
-                title.textContent = project.name || 'N/A';
-                
-                const client = document.createElement('p');
-                client.className = 'text-sm text-gray-600 dark:text-gray-400 mb-2';
-                client.innerHTML = `<strong>Cliente:</strong> ${escapeHtml(clientUsername)}`;
-                
-                const descContainer = document.createElement('div');
-                descContainer.className = 'mb-3 text-sm';
-                const descLabel = document.createElement('strong');
-                descLabel.textContent = 'Descrição:';
-                const descContent = document.createElement('div');
-                descContent.className = 'mt-1';
-                descContent.appendChild(buildDescriptionNode(project.description, 50));
-                
-                descContainer.appendChild(descLabel);
-                descContainer.appendChild(descContent);
-                
-                const footer = document.createElement('div');
-                footer.className = 'flex justify-between items-center mt-4';
-                
-                const statusSpanMobile = document.createElement('span');
-                statusSpanMobile.className = `px-2 py-1 rounded text-xs ${getStatusClass(project.status)}`;
-                statusSpanMobile.textContent = getStatusText(project.status);
-                
-                const actions = document.createElement('div');
-                actions.className = 'space-x-2';
-                
-                const editBtnMobile = document.createElement('button');
-                editBtnMobile.textContent = 'Editar';
-                editBtnMobile.className = 'btn btn-sm btn-primary';
-                editBtnMobile.onclick = () => window.editProject(editBtnMobile);
-                
-                const rejectBtnMobile = document.createElement('button');
-                rejectBtnMobile.textContent = 'Rejeitar';
-                rejectBtnMobile.className = 'btn btn-sm bg-red-600 hover:bg-red-700 text-white';
-                rejectBtnMobile.onclick = () => window.rejectProject(rejectBtnMobile);
-                
-                actions.appendChild(editBtnMobile);
-                actions.appendChild(rejectBtnMobile);
-                
-                footer.appendChild(statusSpanMobile);
-                footer.appendChild(actions);
-                
-                card.appendChild(title);
-                card.appendChild(client);
-                card.appendChild(descContainer);
-                card.appendChild(footer);
-                
+                card.innerHTML = `
+                    <h3 class="font-bold text-lg mb-2">${escapeHtml(project.name || 'N/A')}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2"><strong>Cliente:</strong> ${escapeHtml(clientUsername)}</p>
+                    <div class="description-wrapper text-sm mb-3"></div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(project.status)}">${getStatusText(project.status)}</span>
+                        <div class="space-x-2">
+                            <button class="btn btn-sm btn-primary" onclick="window.editProject(this)">Editar</button>
+                            <button class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick="window.rejectProject(this)">Rejeitar</button>
+                        </div>
+                    </div>
+                `;
+                card.querySelector('.description-wrapper').appendChild(buildDescriptionNode(project.description, 50));
                 cardsContainer.appendChild(card);
             });
         } catch (error) {

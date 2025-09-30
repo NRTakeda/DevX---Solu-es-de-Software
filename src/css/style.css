@@ -150,6 +150,7 @@ html.dark .card:hover {
 input[type="text"],
 input[type="email"],
 input[type="password"],
+input[type="url"],
 textarea {
     background-color: var(--color-background);
     border: 1px solid var(--color-border);
@@ -162,6 +163,8 @@ textarea {
 }
 input[type="text"]:focus,
 input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="url"]:focus,
 textarea:focus {
     border-color: var(--color-accent-blue);
     box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
@@ -169,6 +172,8 @@ textarea:focus {
 }
 html.dark input[type="text"]:focus,
 html.dark input[type="email"]:focus,
+html.dark input[type="password"]:focus,
+html.dark input[type="url"]:focus,
 html.dark textarea:focus {
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
 }
@@ -189,10 +194,7 @@ label {
 .hero-background::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background-color: rgba(0, 0, 0, 0.3);
     z-index: 1;
 }
@@ -214,10 +216,7 @@ label {
 .contato-background::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 0; left: 0; right: 0; bottom: 0;
     background-color: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -380,162 +379,59 @@ html.dark .chat-window {
     cursor: not-allowed;
 }
 
-/* --- Estilos da Sidebar Responsiva do Dashboard (VERSÃO FINAL) --- */
+/* --- Estilos da Sidebar Responsiva do Dashboard (Antigo) --- */
 #dashboard-sidebar {
     width: 16rem; /* 256px */
 }
-
-/* Em telas de Desktop (md e acima), a sidebar empurra o conteúdo */
 @media (min-width: 768px) {
     #main-content {
         margin-left: 16rem; /* 256px */
     }
 }
-
 .nav-link.active {
     background-color: var(--color-light-gray-bg);
     color: var(--color-text-primary);
     font-weight: 600;
 }
 
-/* Estilos para os botões */
-.edit-btn, .reject-btn {
-    transition: all 0.2s ease-in-out;
-}
-
-.edit-btn:hover {
-    color: #0369a1;
-}
-
-.reject-btn:hover {
-    color: #dc2626;
-}
-
-/* Loading state */
+/* --- Estilos de botões de ação e estados --- */
 button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-/* Estilos específicos para o modal de rejeição */
-#reject-modal textarea {
-    min-height: 150px;
-    resize: vertical;
+/*
+============================================================
+            NOVOS ESTILOS DO PAINEL DE ADMIN
+============================================================
+*/
+
+/* Link da Sidebar do Admin */
+#admin-sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    border-radius: 0.375rem;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    border-left: 3px solid transparent;
 }
 
-#reject-modal .btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+#admin-sidebar .nav-link:hover {
+    background-color: var(--color-light-gray-bg);
+    color: var(--color-text-primary);
 }
 
-/* Loading spinner para o botão de rejeição */
-.btn-loading {
-    position: relative;
-    color: transparent;
+/* Estado ativo do link da sidebar do Admin */
+#admin-sidebar .nav-link.active {
+    background-color: var(--color-light-gray-bg);
+    color: var(--color-accent-blue);
+    font-weight: 600;
+    border-left-color: var(--color-accent-blue);
 }
 
-.btn-loading::after {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    top: 50%;
-    left: 50%;
-    margin-left: -8px;
-    margin-top: -8px;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    border-right-color: transparent;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-.character-counter {
-    text-align: right;
-    font-size: 11px;
-    color: #666;
-    margin-top: 4px;
-    padding: 2px 8px;
-    background: #f5f5f5;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-}
-
-.character-counter.warning {
-    color: #ff9800;
-    background: #fff3e0;
-}
-
-.character-counter.error {
-    color: #f44336;
-    background: #ffebee;
-    font-weight: bold;
-}
-
-.chat-input-container {
-    position: relative;
-    margin-top: 10px;
-}
-
-#chat-input {
-    width: 100%;
-    resize: vertical;
-    min-height: 40px;
-    max-height: 120px;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-family: inherit;
-}
-
-.limit-message {
-    background: #fff3e0;
-    border-left: 4px solid #ff9800;
-    padding: 10px;
-    margin: 10px 0;
-}
-
-/* --- ESTILOS PARA O PAINEL ADMIN --- */
-
-/* Sidebar do Admin - SÓ AFETA O ADMIN */
-#admin-sidebar {
-    transition: transform 0.3s ease-in-out;
-}
-
-/* Overlay da Sidebar - SÓ AFETA O ADMIN */
-#sidebar-overlay {
-    transition: opacity 0.3s ease-in-out;
-}
-
-/* Responsividade da Sidebar - SÓ NO ADMIN MOBILE */
-@media (max-width: 767px) {
-    #admin-sidebar {
-        z-index: 1000;
-    }
-    
-    #sidebar-overlay {
-        z-index: 999;
-    }
-}
-
-/* Classes utilitárias - SÓ SE USAR ESSAS CLASSES */
-.btn-sm {
-    @apply px-2 py-1 text-xs;
-}
-
-/* Status dos projetos - SÓ SE USAR ESSAS CLASSES */
-.status-approved {
-    @apply bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100;
-}
-
-.status-pending {
-    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100;
-}
-
-.status-rejected {
-    @apply bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100;
+#admin-sidebar .nav-link.active svg {
+    color: var(--color-accent-blue);
 }
