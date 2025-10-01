@@ -7,7 +7,7 @@ export default async function handler(request, response) {
     const { slug, utm_source, utm_medium, utm_campaign } = request.query;
 
     // --- VALIDAÇÃO DE SEGURANÇA ---
-    const slugRegex = /^[a-z0-9-]+$/; // Apenas letras minúsculas, números e hífen
+const slugRegex = /^[a-z0-9-]+$/i; // O 'i' no final torna a regra insensível a maiúsculas
     if (!slug || !slugRegex.test(slug)) {
         return response.status(400).json({ message: 'Formato de slug inválido.' });
     }
