@@ -45,6 +45,8 @@ export default async function handler(request, response) {
                 country: request.headers['x-vercel-ip-country'],
                 region: request.headers['x-vercel-ip-country-region'],
                 city: request.headers['x-vercel-ip-city'],
+                latitude: request.headers['x-vercel-ip-latitude'],
+                longitude: request.headers['x-vercel-ip-longitude'],
             },
             
             // NOVOS DADOS (salvos em colunas separadas)
