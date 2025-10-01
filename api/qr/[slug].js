@@ -1,4 +1,4 @@
-// /api/qr/[slug].js (Versão Final Robusta com Fallback para Headers Legados)
+// /api/qr/[slug].js (Versão Final de DEPURAÇÃO para Capturar Erro de Insert)
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -32,9 +32,6 @@ export default async function handler(request, response) {
             return response.status(404).send('QR Code não encontrado ou inativo.');
         }
 
-        // --- LÓGICA DE GEOLOCALIZAÇÃO HÍBRIDA ---
-        // Tenta usar o método moderno (request.geo) primeiro.
-        // Se ele não existir (undefined), usa os headers legados da Vercel como fallback.
         const geoData = {
             country: request.geo?.country || request.headers['x-vercel-ip-country'] || null,
             region: request.geo?.region || request.headers['x-vercel-ip-country-region'] || null,
@@ -54,12 +51,27 @@ export default async function handler(request, response) {
             utm_campaign: utm_campaign || null,
         };
         
-        supabaseAdmin.from('qr_logs').insert(logData).then(({ error: insertError }) => {
-            if (insertError) {
-                console.error('Falha assíncrona ao salvar o log do QR Code:', insertError);
-            }
-        });
+        // --- BLOCO DE DEPURAÇÃO DO INSERT ---
+        // Vamos logar o objeto exato antes de enviar e usar await para capturar o erro.
+        console.log("--- INICIANDO DEBUG DO INSERT ---");
+        console.log("Objeto a ser inserido:", JSON.stringify(logData, null, 2));
 
+        try {
+            const { error: insertError } = await supabaseAdmin.from('qr_logs').insert(logData);
+
+            if (insertError) {
+                // Se a inserção falhar, o erro será logado de forma explícita aqui.
+                console.error("!!! ERRO DETALHADO DO SUPABASE AO INSERIR:", insertError);
+            } else {
+                console.log("Log salvo com sucesso no Supabase.");
+            }
+        } catch (e) {
+            console.error("!!! ERRO CRÍTICO NO BLOCO DE INSERT (CATCH):", e);
+        }
+        console.log("--- FIM DO DEBUG DO INSERT ---");
+        // --- FIM DO BLOCO DE DEPURAÇÃO ---
+
+        // Mesmo que o log falhe, o redirecionamento deve ocorrer.
         return response.redirect(307, linkData.destino);
 
     } catch (error) {
