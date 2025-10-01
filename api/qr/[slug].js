@@ -1,64 +1,70 @@
-// /api/qr/[slug].js
+// /api/qr/[slug].js (Versão Final Otimizada - Mantendo a coluna 'geo')
 
 import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(request, response) {
-    // 1. Captura o "slug" da URL. 
-    // Ex: se a URL for /api/qr/instagram, o slug será "instagram".
-    const { slug } = request.query;
+    // Coleta o slug e os parâmetros UTM da URL
+    const { slug, utm_source, utm_medium, utm_campaign } = request.query;
 
-    if (!slug) {
-        return response.status(400).json({ message: 'QR Code inválido.' });
+    // --- VALIDAÇÃO DE SEGURANÇA ---
+    const slugRegex = /^[a-z0-9-]+$/; // Apenas letras minúsculas, números e hífen
+    if (!slug || !slugRegex.test(slug)) {
+        return response.status(400).json({ message: 'Formato de slug inválido.' });
     }
 
-    // 2. Cria um cliente Supabase com privilégios de administrador.
-    // Isso é necessário para escrever na tabela de logs de forma segura.
     const supabaseAdmin = createClient(
         process.env.VITE_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // 3. Busca no banco de dados qual o link de destino para este slug.
-    const { data: linkData, error } = await supabaseAdmin
-        .from('qr_links')
-        .select('id, destino') // Selecionamos o ID para usar no log e o destino para o redirect
-        .eq('slug', slug)
-        .single();
+    let destinationUrl = process.env.FALLBACK_URL || 'https://devxpi.vercel.app/index.html';
 
-    // Se não encontrar um link ou der erro, retorna "Não Encontrado".
-    if (error || !linkData) {
-        return response.status(404).json({ message: 'QR Code não encontrado ou inativo.' });
-    }
-
-    // --- A partir daqui, o redirecionamento já está garantido ---
-
-    // 4. Coleta os dados para as estatísticas.
-    const ip = request.headers['x-vercel-forwarded-for'] || request.socket.remoteAddress;
-    const userAgent = request.headers['user-agent'];
-    const geo = {
-        city: request.headers['x-vercel-ip-city'],
-        country: request.headers['x-vercel-ip-country'],
-        region: request.headers['x-vercel-ip-country-region'],
-        latitude: request.headers['x-vercel-ip-latitude'],
-        longitude: request.headers['x-vercel-ip-longitude'],
-    };
-
-    // 5. Salva o registro do acesso (log) na tabela 'qr_logs'.
-    // Fazemos isso de forma assíncrona, mas aguardamos a conclusão para garantir o registro.
     try {
-        await supabaseAdmin.from('qr_logs').insert({
+        const { data: linkData, error: selectError } = await supabaseAdmin
+            .from('qr_links')
+            .select('id, destino')
+            .eq('slug', slug)
+            .single();
+
+        if (selectError) throw selectError;
+        if (!linkData) {
+            console.warn(`QR Code não encontrado para o slug: ${slug}`);
+            return response.redirect(307, destinationUrl);
+        }
+
+        destinationUrl = linkData.destino;
+
+        // Prepara o objeto com todos os dados a serem logados
+        const logData = {
             qr_id: linkData.id,
-            ip: ip,
-            user_agent: userAgent,
-            geo: geo
+            ip: request.headers['x-vercel-forwarded-for'] || request.socket.remoteAddress,
+            user_agent: request.headers['user-agent'],
+            
+            // DADOS DE GEOLOCALIZAÇÃO (salvos no JSONB 'geo', como antes)
+            geo: {
+                country: request.headers['x-vercel-ip-country'],
+                region: request.headers['x-vercel-ip-country-region'],
+                city: request.headers['x-vercel-ip-city'],
+            },
+            
+            // NOVOS DADOS (salvos em colunas separadas)
+            language: request.headers['accept-language']?.split(',')[0],
+            utm_source,
+            utm_medium,
+            utm_campaign,
+        };
+        
+        // Insere o log no banco de dados de forma não-bloqueante
+        supabaseAdmin.from('qr_logs').insert(logData).then(({ error: insertError }) => {
+            if (insertError) {
+                console.error('Falha assíncrona ao salvar o log do QR Code:', insertError);
+            }
         });
-    } catch (logError) {
-        // Se o log falhar, não impedimos o usuário de ser redirecionado.
-        // Apenas registramos o erro no console do servidor.
-        console.error('Falha ao salvar o log do QR Code:', logError);
+
+    } catch (error) {
+        console.error('Erro crítico na função QR (antes do redirecionamento):', error);
+    } finally {
+        // Redireciona o usuário, garantindo a melhor experiência
+        return response.redirect(307, destinationUrl);
     }
-    
-    // 6. Redireciona o usuário para o destino final.
-    // O código 307 (Temporary Redirect) é o ideal para este caso.
-    return response.redirect(307, linkData.destino);
 }
