@@ -1,10 +1,21 @@
-// /api/qr/[slug].js (Versão Final de DEPURAÇÃO para Capturar Erro de Insert)
+// /api/qr/[slug].js (Versão Final de Produção - Robusta e Otimizada)
 
 import { createClient } from '@supabase/supabase-js';
 
 const parseFloatOrNull = (value) => {
     const num = parseFloat(value);
     return isNaN(num) ? null : num;
+};
+
+// Função para decodificar componentes de URL de forma segura
+const decodeSafely = (value) => {
+    if (!value) return null;
+    try {
+        return decodeURIComponent(value);
+    } catch (e) {
+        // Retorna o valor original se a decodificação falhar
+        return value;
+    }
 };
 
 export default async function handler(request, response) {
@@ -28,14 +39,15 @@ export default async function handler(request, response) {
             .single();
 
         if (selectError || !linkData) {
-            console.error(`Erro ao buscar slug ou slug não encontrado: ${slug}`, selectError);
             return response.status(404).send('QR Code não encontrado ou inativo.');
         }
 
+        // --- LÓGICA DE GEOLOCALIZAÇÃO HÍBRIDA E LIMPEZA DE DADOS ---
         const geoData = {
             country: request.geo?.country || request.headers['x-vercel-ip-country'] || null,
             region: request.geo?.region || request.headers['x-vercel-ip-country-region'] || null,
-            city: request.geo?.city || request.headers['x-vercel-ip-city'] || null,
+            // Decodificamos a cidade para salvar o texto limpo (ex: "São Paulo")
+            city: decodeSafely(request.geo?.city || request.headers['x-vercel-ip-city']),
             latitude: parseFloatOrNull(request.geo?.latitude || request.headers['x-vercel-ip-latitude']),
             longitude: parseFloatOrNull(request.geo?.longitude || request.headers['x-vercel-ip-longitude']),
         };
@@ -51,27 +63,13 @@ export default async function handler(request, response) {
             utm_campaign: utm_campaign || null,
         };
         
-        // --- BLOCO DE DEPURAÇÃO DO INSERT ---
-        // Vamos logar o objeto exato antes de enviar e usar await para capturar o erro.
-        console.log("--- INICIANDO DEBUG DO INSERT ---");
-        console.log("Objeto a ser inserido:", JSON.stringify(logData, null, 2));
-
-        try {
-            const { error: insertError } = await supabaseAdmin.from('qr_logs').insert(logData);
-
+        // Retornamos ao método assíncrono para a melhor performance do usuário
+        supabaseAdmin.from('qr_logs').insert(logData).then(({ error: insertError }) => {
             if (insertError) {
-                // Se a inserção falhar, o erro será logado de forma explícita aqui.
-                console.error("!!! ERRO DETALHADO DO SUPABASE AO INSERIR:", insertError);
-            } else {
-                console.log("Log salvo com sucesso no Supabase.");
+                console.error('Falha assíncrona ao salvar o log do QR Code:', insertError);
             }
-        } catch (e) {
-            console.error("!!! ERRO CRÍTICO NO BLOCO DE INSERT (CATCH):", e);
-        }
-        console.log("--- FIM DO DEBUG DO INSERT ---");
-        // --- FIM DO BLOCO DE DEPURAÇÃO ---
+        });
 
-        // Mesmo que o log falhe, o redirecionamento deve ocorrer.
         return response.redirect(307, linkData.destino);
 
     } catch (error) {
