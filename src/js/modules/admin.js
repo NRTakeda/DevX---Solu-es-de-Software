@@ -47,9 +47,9 @@ export async function initAdmin() {
     const statsModalTitle = document.getElementById('stats-modal-title');
     const statsTotalScans = document.getElementById('stats-total-scans');
     const statsScans7Days = document.getElementById('stats-scans-7-days');
-    const statsTopRegion = document.getElementById('stats-top-region');
+    const statsTopCountry = document.getElementById('stats-top-country');
     const scansOverTimeChartCanvas = document.getElementById('scans-over-time-chart');
-    const topCitiesList = document.getElementById('stats-top-cities-list');
+    const topCountriesList = document.getElementById('stats-top-countries-list');
     const topDevicesList = document.getElementById('stats-top-devices-list');
 
     let scansChart = null;
@@ -352,89 +352,38 @@ export async function initAdmin() {
     }
 
     async function displayStatsForQR(qrId, slug) {
-    openModal(statsModal);
-    statsModalTitle.textContent = `Estatísticas para: ${slug}`;
-    statsTotalScans.textContent = '...'; 
-    statsScans7Days.textContent = '...'; 
-    statsTopRegion.textContent = '...'; // Substituiu statsTopCountry
-    topCitiesList.innerHTML = '<li>Carregando...</li>'; // Substituiu topCountriesList
-    topDevicesList.innerHTML = '<li>Carregando...</li>';
-
-    try {
-        const { data: logs, error } = await supabase.from('qr_logs').select('created_at, geo, user_agent').eq('qr_id', qrId).order('created_at', { ascending: true });
-        if (error) throw error;
-        
-        const totalScans = logs.length;
-        const sevenDaysAgo = new Date(); 
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const scansLast7Days = logs.filter(log => new Date(log.created_at) > sevenDaysAgo).length;
-        
-        // REMOVIDO: Processamento de países
-        // Processar cidades/regiões (AGORA É O PRINCIPAL)
-        const cityCounts = logs.reduce((acc, log) => { 
-            const city = log.geo?.city || log.geo?.region || 'Desconhecido'; 
-            acc[city] = (acc[city] || 0) + 1; 
-            return acc; 
-        }, {});
-        const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]);
-        
-        // Processar dispositivos
-        const deviceCounts = logs.reduce((acc, log) => { 
-            const device = parseUserAgent(log.user_agent); 
-            acc[device] = (acc[device] || 0) + 1; 
-            return acc; 
-        }, {});
-        const topDevices = Object.entries(deviceCounts).sort((a, b) => b[1] - a[1]);
-        
-        // Processar scans por dia
-        const scansByDay = logs.reduce((acc, log) => { 
-            const day = new Date(log.created_at).toISOString().split('T')[0]; 
-            acc[day] = (acc[day] || 0) + 1; 
-            return acc; 
-        }, {});
-        
-        // Atualizar a interface
-        statsTotalScans.textContent = totalScans;
-        statsScans7Days.textContent = scansLast7Days;
-        statsTopRegion.textContent = topCities.length > 0 ? topCities[0][0] : 'N/A'; // Agora mostra a cidade top 1
-        
-        // Lista de cidades (SUBSTITUIU a lista de países)
-        topCitiesList.innerHTML = topCities.slice(0, 5).map(city => 
-            `<li class="flex justify-between py-1 border-b dark:border-gray-700"><span>${city[0]}</span><strong>${city[1]}</strong></li>`
-        ).join('') || '<li>Nenhum dado</li>';
-        
-        // Lista de dispositivos (mantido)
-        topDevicesList.innerHTML = topDevices.slice(0, 5).map(d => 
-            `<li class="flex justify-between py-1 border-b dark:border-gray-700"><span>${d[0]}</span><strong>${d[1]}</strong></li>`
-        ).join('') || '<li>Nenhum dado</li>';
-        
-        // Atualizar gráfico
-        if (scansChart) { scansChart.destroy(); }
-        scansChart = new Chart(scansOverTimeChartCanvas, {
-            type: 'line',
-            data: { 
-                labels: Object.keys(scansByDay), 
-                datasets: [{ 
-                    label: 'Scans por Dia', 
-                    data: Object.values(scansByDay), 
-                    borderColor: '#2563EB', 
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)', 
-                    fill: true, 
-                    tension: 0.3 
-                }] 
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } } 
-            }
-        });
-    } catch(err) {
-        console.error('Erro ao exibir estatísticas:', err);
-        showErrorToast('Erro ao carregar estatísticas.');
+        openModal(statsModal);
+        statsModalTitle.textContent = `Estatísticas para: ${slug}`;
+        statsTotalScans.textContent = '...'; statsScans7Days.textContent = '...'; statsTopCountry.textContent = '...';
+        topCountriesList.innerHTML = '<li>Carregando...</li>'; topDevicesList.innerHTML = '<li>Carregando...</li>';
+        try {
+            const { data: logs, error } = await supabase.from('qr_logs').select('created_at, geo, user_agent').eq('qr_id', qrId).order('created_at', { ascending: true });
+            if (error) throw error;
+            const totalScans = logs.length;
+            const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const scansLast7Days = logs.filter(log => new Date(log.created_at) > sevenDaysAgo).length;
+            const countryCounts = logs.reduce((acc, log) => { const country = log.geo?.country || 'Desconhecido'; acc[country] = (acc[country] || 0) + 1; return acc; }, {});
+            const topCountries = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]);
+            const deviceCounts = logs.reduce((acc, log) => { const device = parseUserAgent(log.user_agent); acc[device] = (acc[device] || 0) + 1; return acc; }, {});
+            const topDevices = Object.entries(deviceCounts).sort((a, b) => b[1] - a[1]);
+            const scansByDay = logs.reduce((acc, log) => { const day = new Date(log.created_at).toISOString().split('T')[0]; acc[day] = (acc[day] || 0) + 1; return acc; }, {});
+            statsTotalScans.textContent = totalScans;
+            statsScans7Days.textContent = scansLast7Days;
+            statsTopCountry.textContent = topCountries.length > 0 ? topCountries[0][0] : 'N/A';
+            topCountriesList.innerHTML = topCountries.slice(0, 5).map(c => `<li class="flex justify-between py-1 border-b dark:border-gray-700"><span>${c[0]}</span><strong>${c[1]}</strong></li>`).join('') || '<li>Nenhum dado</li>';
+            topDevicesList.innerHTML = topDevices.slice(0, 5).map(d => `<li class="flex justify-between py-1 border-b dark:border-gray-700"><span>${d[0]}</span><strong>${d[1]}</strong></li>`).join('') || '<li>Nenhum dado</li>';
+            if (scansChart) { scansChart.destroy(); }
+            scansChart = new Chart(scansOverTimeChartCanvas, {
+                type: 'line',
+                data: { labels: Object.keys(scansByDay), datasets: [{ label: 'Scans por Dia', data: Object.values(scansByDay), borderColor: '#2563EB', backgroundColor: 'rgba(37, 99, 235, 0.1)', fill: true, tension: 0.3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        } catch(err) {
+            console.error('Erro ao exibir estatísticas:', err);
+            showErrorToast('Erro ao carregar estatísticas.');
+        }
     }
-}
-closeStatsModalButton.addEventListener('click', () => closeModal(statsModal));
+    closeStatsModalButton.addEventListener('click', () => closeModal(statsModal));
 
     // --- FUNÇÕES GLOBAIS PARA onlick ---
     window.editProject = (buttonElement) => {
