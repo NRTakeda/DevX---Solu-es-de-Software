@@ -1,36 +1,16 @@
-// /api/qr/[slug].js (Versão Final com Logs para Depuração)
+// /api/qr/[slug].js (Versão Final Robusta com Fallback para Headers Legados)
 
 import { createClient } from '@supabase/supabase-js';
 
-/**
- * Converte um valor para o tipo float de forma segura.
- * Se o valor não for um número válido, retorna null.
- * Isso garante que não salvaremos dados inválidos (como NaN ou strings) no banco.
- * @param {any} value - O valor a ser convertido.
- * @returns {number|null} - O número convertido ou null.
- */
 const parseFloatOrNull = (value) => {
     const num = parseFloat(value);
     return isNaN(num) ? null : num;
 };
 
 export default async function handler(request, response) {
-    
-    // --- BLOCO DE DEPURAÇÃO ESSENCIAL ---
-    // Este bloco nos ajuda a ver exatamente o que a Vercel está fornecendo para a função.
-    console.log("--- INICIANDO DEBUG DE GEOLOCALIZAÇÃO ---");
-    console.log("Data/Hora (UTC):", new Date().toUTCString());
-    console.log("Conteúdo de request.geo:", request.geo);
-    console.log("IP (x-forwarded-for):", request.headers['x-forwarded-for']);
-    console.log("País (x-vercel-ip-country - Legado):", request.headers['x-vercel-ip-country']);
-    console.log("--- FIM DO DEBUG ---");
-    // --- FIM DO BLOCO DE DEPURAÇÃO ---
-
-    // Coleta o slug e os parâmetros UTM da URL
     const { slug, utm_source, utm_medium, utm_campaign } = request.query;
 
-    // --- VALIDAÇÃO DE SEGURANÇA ---
-    const slugRegex = /^[a-z0-9-]+$/i; // O 'i' torna a regra insensível a maiúsculas
+    const slugRegex = /^[a-z0-9-]+$/i;
     if (!slug || !slugRegex.test(slug)) {
         return response.status(400).json({ message: 'Formato de slug inválido.' });
     }
@@ -41,7 +21,6 @@ export default async function handler(request, response) {
     );
 
     try {
-        // Busca o link de destino no banco de dados
         const { data: linkData, error: selectError } = await supabaseAdmin
             .from('qr_links')
             .select('id, destino')
@@ -53,19 +32,17 @@ export default async function handler(request, response) {
             return response.status(404).send('QR Code não encontrado ou inativo.');
         }
 
-        // --- COLETA E TRATAMENTO DOS DADOS ---
-
-        // O objeto `request.geo` é injetado pela Vercel. Usamos optional chaining (?.)
-        // para evitar erros caso o objeto não exista.
+        // --- LÓGICA DE GEOLOCALIZAÇÃO HÍBRIDA ---
+        // Tenta usar o método moderno (request.geo) primeiro.
+        // Se ele não existir (undefined), usa os headers legados da Vercel como fallback.
         const geoData = {
-            country: request.geo?.country || null,
-            region: request.geo?.region || null,
-            city: request.geo?.city || null,
-            latitude: parseFloatOrNull(request.geo?.latitude),
-            longitude: parseFloatOrNull(request.geo?.longitude),
+            country: request.geo?.country || request.headers['x-vercel-ip-country'] || null,
+            region: request.geo?.region || request.headers['x-vercel-ip-country-region'] || null,
+            city: request.geo?.city || request.headers['x-vercel-ip-city'] || null,
+            latitude: parseFloatOrNull(request.geo?.latitude || request.headers['x-vercel-ip-latitude']),
+            longitude: parseFloatOrNull(request.geo?.longitude || request.headers['x-vercel-ip-longitude']),
         };
 
-        // Prepara o objeto completo com todos os dados a serem logados
         const logData = {
             qr_id: linkData.id,
             ip: request.headers['x-forwarded-for'] || request.socket.remoteAddress,
@@ -77,22 +54,16 @@ export default async function handler(request, response) {
             utm_campaign: utm_campaign || null,
         };
         
-        // A inserção do log não deve bloquear o redirecionamento do usuário.
-        // Usamos .then() para lidar com o resultado de forma assíncrona.
         supabaseAdmin.from('qr_logs').insert(logData).then(({ error: insertError }) => {
             if (insertError) {
-                // Se a inserção falhar, apenas logamos o erro no servidor.
-                // O usuário já foi redirecionado e não é impactado.
                 console.error('Falha assíncrona ao salvar o log do QR Code:', insertError);
             }
         });
 
-        // Redireciona o usuário para o destino final o mais rápido possível.
         return response.redirect(307, linkData.destino);
 
     } catch (error) {
         console.error('Erro crítico na função da API QR:', error);
-        // Em caso de erro grave, redireciona para uma URL de fallback.
         const fallbackUrl = process.env.FALLBACK_URL || 'https://sua-url-de-fallback.com';
         return response.redirect(307, fallbackUrl);
     }
