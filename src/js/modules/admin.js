@@ -53,6 +53,9 @@ export async function initAdmin() {
     const topDevicesList = document.getElementById('stats-top-devices-list');
 
     let scansChart = null;
+    // --- [1/4] VARIÁVEL ADICIONADA ---
+    // Guarda a referência da "escuta" do Supabase para poder removê-la depois.
+    let qrChannel = null;
 
     // --- GUARDA DE SEGURANÇA (ADMIN) ---
     if (!user) { window.location.href = '/login.html'; return; }
@@ -280,44 +283,97 @@ export async function initAdmin() {
 
     // --- LÓGICA DE QR CODES ---
     async function renderQRCodes() {
-    qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Carregando...</td></tr>`;
-    qrcodesTableBody.dataset.loaded = "true";
-    try {
-        const { data: links, error } = await supabase.from('qr_links').select(`id, slug, destino, descricao, qr_logs ( count )`).order('created_at', { ascending: false });
-        if (error) throw error;
-        if (!links || links.length === 0) { qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum QR Code criado ainda.</td></tr>`; return; }
-        qrcodesTableBody.innerHTML = '';
-        links.forEach(link => {
-            const tr = document.createElement('tr');
-            tr.className = 'border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700';
-            tr.dataset.qrLink = JSON.stringify(link);
-            tr.innerHTML = `
-                <td class="p-4 text-left font-mono text-sm">${escapeHtml(link.slug)}</td>
-                <td class="p-4 text-left break-all text-sm">${escapeHtml(link.destino)}</td>
-                <td class="p-4 text-left text-sm">${escapeHtml(link.descricao || '---')}</td>
-                <td class="p-4 text-center font-semibold text-lg">${link.qr_logs[0]?.count || 0}</td>
-                <td class="p-4 text-left space-x-2">
-                    <button title="Estatísticas" onclick="statsQrCode(this)" class="btn-icon btn-icon-info">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                    </button>
-                    <button title="Ver QR Code" onclick="viewQrCode(this)" class="btn-icon btn-icon-secondary">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V8m0 0h-4m4 0l-5-5M4 16v4m0 0h4m-4 0l5-5m11 1v-4m0 0h-4m4 0l-5 5"></path></svg>
-                    </button>
-                    <button title="Editar" onclick="editQrCode(this)" class="btn-icon btn-icon-primary">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"></path></svg>
-                    </button>
-                    <button title="Excluir" onclick="deleteQrCode(this)" class="btn-icon btn-icon-danger">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                </td>
-            `;
-            qrcodesTableBody.appendChild(tr);
-        });
-    } catch(err) {
-        console.error('Erro ao carregar QR Codes:', err);
-        showErrorToast('Erro ao carregar QR Codes.');
+        qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Carregando...</td></tr>`;
+        qrcodesTableBody.dataset.loaded = "true";
+        try {
+            const { data: links, error } = await supabase.from('qr_links').select(`id, slug, destino, descricao, qr_logs ( count )`).order('created_at', { ascending: false });
+            if (error) throw error;
+            if (!links || links.length === 0) { qrcodesTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center">Nenhum QR Code criado ainda.</td></tr>`; return; }
+            qrcodesTableBody.innerHTML = '';
+            links.forEach(link => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700';
+                tr.dataset.qrLink = JSON.stringify(link);
+                tr.innerHTML = `
+                    <td class="p-4 text-left font-mono text-sm">${escapeHtml(link.slug)}</td>
+                    <td class="p-4 text-left break-all text-sm">${escapeHtml(link.destino)}</td>
+                    <td class="p-4 text-left text-sm">${escapeHtml(link.descricao || '---')}</td>
+                    
+                    <td id="scans-count-${link.id}" class="p-4 text-center font-semibold text-lg">${link.qr_logs[0]?.count || 0}</td>
+                    
+                    <td class="p-4 text-left space-x-2">
+                        <button title="Estatísticas" onclick="statsQrCode(this)" class="btn-icon btn-icon-info">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </button>
+                        <button title="Ver QR Code" onclick="viewQrCode(this)" class="btn-icon btn-icon-secondary">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V8m0 0h-4m4 0l-5-5M4 16v4m0 0h4m-4 0l5-5m11 1v-4m0 0h-4m4 0l-5 5"></path></svg>
+                        </button>
+                        <button title="Editar" onclick="editQrCode(this)" class="btn-icon btn-icon-primary">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z"></path></svg>
+                        </button>
+                        <button title="Excluir" onclick="deleteQrCode(this)" class="btn-icon btn-icon-danger">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                `;
+                qrcodesTableBody.appendChild(tr);
+            });
+
+            // --- [3/4] CHAMADA ADICIONADA ---
+            // Inicia a "escuta" por eventos em tempo real após a tabela ser renderizada.
+            listenForQrScans();
+
+        } catch(err) {
+            console.error('Erro ao carregar QR Codes:', err);
+            showErrorToast('Erro ao carregar QR Codes.');
+        }
     }
-}
+    
+    // --- [4/4] FUNÇÃO ADICIONADA ---
+    // Esta função cria a "escuta" de eventos realtime para a tabela 'qr_logs'.
+    async function listenForQrScans() {
+        console.log('👂 Iniciando escuta por novos scans...');
+
+        // Garante que não estamos criando múltiplas "escutas" (canais)
+        if (qrChannel) {
+            supabase.removeChannel(qrChannel);
+        }
+
+        qrChannel = supabase.channel('qr_logs_changes')
+        .on(
+            'postgres_changes',
+            { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'qr_logs' 
+            },
+            (payload) => {
+            console.log('🟢 Novo scan recebido em tempo real!', payload);
+            const newScan = payload.new;
+            
+            // Encontra a célula de contagem específica usando o ID que criamos
+            const countCell = document.getElementById(`scans-count-${newScan.qr_id}`);
+
+            if (countCell) {
+                // Pega o valor atual, converte para número, e soma 1
+                const currentCount = parseInt(countCell.textContent, 10) || 0;
+                countCell.textContent = currentCount + 1;
+
+                // Adiciona um efeito visual para destacar a linha que foi atualizada
+                const row = countCell.closest('tr');
+                row.classList.add('highlight-update');
+                setTimeout(() => {
+                    row.classList.remove('highlight-update');
+                }, 2000); // Remove o destaque após 2 segundos
+            }
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('✅ Escuta de scans estabelecida com sucesso!');
+            }
+        });
+    }
 
     createQrBtn.addEventListener('click', () => { qrCodeForm.reset(); qrCodeForm.querySelector('#edit-qrcode-id').value = ''; modalTitle.textContent = 'Criar Novo QR Code'; openModal(qrCodeModal); });
     cancelQrCodeButton.addEventListener('click', () => closeModal(qrCodeModal));

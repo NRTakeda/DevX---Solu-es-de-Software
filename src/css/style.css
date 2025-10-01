@@ -473,3 +473,14 @@ button:disabled {
 .btn-icon-secondary {
     @apply bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:hover:bg-purple-900;
 }
+
+/* Adicione ao final de /css/style.css */
+
+@keyframes highlight {
+  from { background-color: rgba(59, 130, 246, 0.2); } /* Cor azul suave */
+  to { background-color: transparent; }
+}
+
+.highlight-update {
+  animation: highlight 2s ease-out;
+}
