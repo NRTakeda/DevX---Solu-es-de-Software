@@ -1,4 +1,4 @@
-// /api/qr/[slug].js (Versão Final de Produção - Robusta e Otimizada)
+// /api/qr/[slug].js (Versão Final Enriquecida)
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -7,19 +7,18 @@ const parseFloatOrNull = (value) => {
     return isNaN(num) ? null : num;
 };
 
-// Função para decodificar componentes de URL de forma segura
 const decodeSafely = (value) => {
     if (!value) return null;
     try {
         return decodeURIComponent(value);
     } catch (e) {
-        // Retorna o valor original se a decodificação falhar
         return value;
     }
 };
 
 export default async function handler(request, response) {
-    const { slug, utm_source, utm_medium, utm_campaign } = request.query;
+    // Coleta todos os parâmetros de query de uma vez
+    const { slug, utm_source, utm_medium, utm_campaign, gclid, ref } = request.query;
 
     const slugRegex = /^[a-z0-9-]+$/i;
     if (!slug || !slugRegex.test(slug)) {
@@ -42,11 +41,9 @@ export default async function handler(request, response) {
             return response.status(404).send('QR Code não encontrado ou inativo.');
         }
 
-        // --- LÓGICA DE GEOLOCALIZAÇÃO HÍBRIDA E LIMPEZA DE DADOS ---
         const geoData = {
             country: request.geo?.country || request.headers['x-vercel-ip-country'] || null,
             region: request.geo?.region || request.headers['x-vercel-ip-country-region'] || null,
-            // Decodificamos a cidade para salvar o texto limpo (ex: "São Paulo")
             city: decodeSafely(request.geo?.city || request.headers['x-vercel-ip-city']),
             latitude: parseFloatOrNull(request.geo?.latitude || request.headers['x-vercel-ip-latitude']),
             longitude: parseFloatOrNull(request.geo?.longitude || request.headers['x-vercel-ip-longitude']),
@@ -58,12 +55,24 @@ export default async function handler(request, response) {
             user_agent: request.headers['user-agent'],
             geo: geoData,
             language: request.headers['accept-language']?.split(',')[0] || null,
+
+            // --- NOVOS DADOS DE MARKETING ---
+            referer: request.headers['referer'] || null,
             utm_source: utm_source || null,
             utm_medium: utm_medium || null,
             utm_campaign: utm_campaign || null,
+            gclid: gclid || null, // Google Click ID
+            ref: ref || null, // Parâmetro de referência genérico
+
+            // --- NOVOS DADOS TÉCNICOS ---
+            is_mobile: request.headers['sec-ch-ua-mobile'] === '?1', // Converte para booleano
+            platform: request.headers['sec-ch-ua-platform'] || null, // Ex: "Android", "Windows"
+            browser_info: request.headers['sec-ch-ua'] || null, // Ex: "Chromium";v="123", ...
+
+            // --- DADO DE PRIVACIDADE ---
+            do_not_track: request.headers['dnt'] === '1', // Converte para booleano
         };
         
-        // Retornamos ao método assíncrono para a melhor performance do usuário
         supabaseAdmin.from('qr_logs').insert(logData).then(({ error: insertError }) => {
             if (insertError) {
                 console.error('Falha assíncrona ao salvar o log do QR Code:', insertError);
